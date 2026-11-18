@@ -1,0 +1,53 @@
+/* Shared top navigation and footer (public pages and the signed-in app). Colours live on the elements, not :root. */
+.sn, .sf {
+  --c-cream: #f5f0e6; --c-paper: #fbf8f1; --c-green: #313d24; --c-green-2: #44563a; --c-gold: #b58a42; --c-gold-2: #d9b36a;
+  --c-ink: #2b2a20; --c-mut: #6b6a5c; --c-line: rgba(49, 61, 36, .16);
+  --c-serif: "Noto Serif Devanagari", "Tiro Devanagari Hindi", Georgia, serif;
+  font-family: var(--c-serif);
+}
+.sn { position: relative; z-index: 120; background: var(--c-cream); color: var(--c-green); border-bottom: 1px solid var(--c-line); }
+.sn-in { max-width: 1280px; margin: 0 auto; padding: .7rem 1.2rem; display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
+.sn-skip { position: absolute; left: -999px; top: 0; background: var(--c-green); color: #fff; padding: .5rem 1rem; z-index: 200; }
+.sn-skip:focus { left: .5rem; top: .5rem; }
+.sn-brand { display: flex; align-items: center; gap: .8rem; text-decoration: none; color: inherit; min-width: 0; }
+.sn-brand span { display: grid; line-height: 1.25; }
+.sn-brand b { font-size: 1.45rem; font-weight: 700; color: var(--c-green); white-space: nowrap; }
+.sn-brand small { font-size: .82rem; color: var(--c-gold); }
+.sn-logo { flex: none; }
+.sn-menu { display: flex; align-items: center; gap: clamp(.9rem, 2.4vw, 2.2rem); }
+.sn .sn-menu a { color: var(--c-green); text-decoration: none; font-size: 1.05rem; padding: .35rem 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+.sn .sn-menu a:hover { border-bottom-color: var(--c-gold); }
+.sn .sn-menu a.on { font-weight: 700; border-bottom-color: var(--c-green); }
+.sn .sn-menu a.sn-cta { padding: .6rem 1.2rem; border-radius: 8px; background: var(--c-green); color: #fff; border: 0; font-weight: 600; }
+.sn .sn-menu a.sn-cta:hover { background: var(--c-green-2); }
+.sn a:focus-visible, .sn button:focus-visible, .sf a:focus-visible { outline: 3px solid var(--c-gold); outline-offset: 3px; border-radius: 6px; }
+.sn-burger { display: none; background: none; border: 1px solid var(--c-line); border-radius: 8px; width: 44px; height: 44px; padding: 0; cursor: pointer; place-items: center; }
+.sn-bars, .sn-bars::before, .sn-bars::after { display: block; width: 20px; height: 2px; background: var(--c-green); content: ""; position: relative; }
+.sn-bars::before { position: absolute; top: -6px; }
+.sn-bars::after { position: absolute; top: 6px; }
+.sn-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (max-width: 920px) {
+  .sn-burger { display: grid; }
+  .sn-brand small { display: none; }
+  .sn-menu { display: none; position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; align-items: stretch; gap: 0; padding: .4rem 1.2rem 1rem; background: var(--c-cream); border-bottom: 1px solid var(--c-line); box-shadow: 0 14px 24px rgba(30, 36, 20, .12); }
+  .sn-menu.open { display: flex; }
+  .sn .sn .sn-menu a { padding: .85rem 0; border-bottom: 1px solid var(--c-line); }
+  .sn .sn-menu a.sn-cta { margin-top: .8rem; text-align: center; border-bottom: 0; }
+}
+
+/* footer */
+.sf { background: var(--c-green); color: #efe9d9; padding: 2.4rem 1.2rem 1.4rem; }
+.sf-in { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 1.4rem 2.4rem; align-items: center; }
+.sf-brand { display: flex; gap: .9rem; align-items: center; }
+.sf .sf-brand p { display: grid; margin: 0; line-height: 1.5; }
+.sf .sf-brand b { font-size: 1.25rem; color: #fff; }
+.sf .sf-brand span { font-size: .92rem; color: #cfc8b2; }
+.sf-links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+.sf a { color: #efe9d9; text-underline-offset: 4px; }
+.sf a:hover { color: var(--c-gold-2); }
+.sf .sf-mail { margin: 0; font-size: 1.02rem; }
+.sf-mail a { color: var(--c-gold-2); }
+.sf .sf-note { max-width: 1280px; margin: 1.6rem auto 0; padding-top: 1rem; border-top: 1px solid rgba(239, 233, 217, .2); font-size: .85rem; line-height: 1.7; color: #cfc8b2; }
+@media (max-width: 760px) {
+  .sf-in { grid-template-columns: 1fr; }
+}

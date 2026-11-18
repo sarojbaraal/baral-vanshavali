@@ -2,7 +2,7 @@
 // App shell: header (tabs, user, theme), the active view, profile panel, dialogs, toast, PWA install button.
 import React, { useEffect, useState } from "react";
 import { DownloadDialog } from "./DownloadMenu";
-import Image from "next/image";
+import Link from "next/link";
 import { ROLE_L } from "@/lib/vansh/graph";
 import { np } from "@/lib/vansh/text";
 import type { Role, TabKey } from "@/lib/vansh/types";
@@ -10,7 +10,7 @@ import { VanshProvider, useVansh } from "./VanshContext";
 import { DialogHost, Toast } from "./ui";
 import { AuthView, PendingView, PosView, ResetView } from "./AuthViews";
 import { FamView, MemView } from "./ListViews";
-import IntroView from "./IntroView";
+import SiteNav from "@/components/site/SiteNav";
 import TreeView from "./TreeView";
 import DetailPanel from "./DetailPanel";
 import { AdminView, MineView } from "./RequestViews";
@@ -116,7 +116,6 @@ function Shell() {
   }, [pushed]);
 
   const tabs: [TabKey, string][] = [
-    ["intro", "📜 बंश परिचय"],
     ["fam", "🏡 परिवार"],
     ["tree", "🌳 चार्ट"],
     ["mem", "👥 सदस्य"],
@@ -143,13 +142,20 @@ function Shell() {
     </div>
   ) : null;
   let body: React.ReactNode = null;
-  if (phase === "auth") body = <AuthView />;
+  if (phase === "auth")
+    body = (
+      <>
+        <div className="card gate" role="note">
+          🔒 वंशवृक्ष र परिवारको विवरण हेर्न लगइन वा दर्ता गर्नुहोस्। <Link href="/history">इतिहास</Link> भने सबैका लागि खुला छ।
+        </div>
+        <AuthView />
+      </>
+    );
   else if (phase === "reset") body = <ResetView />;
   else if (phase === "pos") body = <PosView />;
   else if (phase === "pending") body = <PendingView />;
   else if (inApp)
     body = {
-      intro: <IntroView />,
       fam: <FamView />,
       tree: <TreeView />,
       mem: <MemView />,
@@ -160,30 +166,15 @@ function Shell() {
 
   return (
     <>
+      <SiteNav
+        active={eff === "tree" ? "lineage" : "branches"}
+        signedIn={inApp}
+        onTab={inApp ? (t) => setTab(t) : undefined}
+      />
       <div className="bgfx" aria-hidden="true">
         <i /><i /><i /><i />
       </div>
       <header>
-        <h1
-          style={{ cursor: "pointer" }}
-          title="मुख्य पृष्ठ"
-          onClick={() => {
-            if (!me || !roles.length) return;
-            setTab("intro");
-            scrollTo(0, 0);
-          }}
-        >
-          <Image
-            src="/icon.png"
-            alt=""
-            aria-hidden="true"
-            width={42}
-            height={42}
-            className="mono"
-            style={{ objectFit: "cover" }}
-          />
-          <span>हाम्रो वंशावली</span>
-        </h1>
         <nav id="tabs" aria-label="मुख्य मेनु">
           {inApp &&
             tabs.map(([k, l]) => (
