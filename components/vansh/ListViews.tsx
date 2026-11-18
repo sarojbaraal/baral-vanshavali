@@ -1,0 +1,357 @@
+"use client";
+// "परिवार" (family) and "सदस्य" (members) tabs — ported from the original app.js famView / memView.
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { famGroups, relMap } from "@/lib/vansh/relations";
+import { ROLE_L, type Graph } from "@/lib/vansh/graph";
+import { ageN, dispName, match, np, surnameOf, yr } from "@/lib/vansh/text";  
+import type { VPerson } from "@/lib/vansh/types";
+import { useVansh } from "./VanshContext";
+import { Avatar, KidCount } from "./ui";
+import PersonSearch from "./PersonSearch";
+import { AnchorDialog, PersonForm } from "./PersonDialogs";
+import DownloadMenu from "./DownloadMenu";
+import { EventChips, StoryCard } from "./HeroAi";
+
+// search text survives tab switches, like the original
+export const qText = { tree: "", fam: "" };
+
+export function FamView() {
+  const { g, me, act, perms, access, people, pick, setTab, openDialog, myPosId } = useVansh();
+  const { byId, kidsOf, byBirth } = g;
+  const { can, isAdm, isStaff } = perms;
+  const [mode, setMode] = useState<"grid" | "list">("grid");
+  const [open, setOpen] = useState<Set<number>>(new Set([0]));
+  const [q, setQ] = useState(qText.fam);
+  const [focus, setFocus] = useState<string | null>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const R = useMemo(() => relMap(g, me).R, [g, me]);
+  const base = me?.position_person_id ? byId[me.position_person_id] : me?.position_parent_id ? byId[me.position_parent_id] : undefined;
+  const has = !!(base || (me?.position_grand_id && byId[me.position_grand_id]));
+  const groups = useMemo(() => (me ? famGroups(g, me, perms, R) : []), [g, me, perms, R]);
+  const ic = has ? groups[0]?.members.length || 0 : 0;
+  const msg = !access.acc
+    ? "सबै वंशावली तपाईंको लागि खुला छ।"
+    : base
+    ? "तपाईंको भूमिकाअनुसार खुला भएको वंश मात्र देखिन्छ। बाँकी शाखा चार्टमा धमिला र लक छन्।"
+    : "तपाईंको स्थान अझै तोकिएको छैन। एडमिनले तोकेपछि शाखा खुल्नेछ।";
+  const meName = (me?.position_person_id && byId[me.position_person_id]?.name) || me?.full_name || me?.email || "";
+
+  const ql = q.trim().toLowerCase();
+  const visiblePeople = useMemo(() => people.filter((p) => can(p.id)), [people, can]);
+
+  const showCard = (id: string) => {
+    const gi = groups.findIndex((gr) => gr.members.some((p) => p.id === id));
+    if (gi >= 0) setOpen((o) => new Set(o).add(gi));
+    setFocus(id);
+    setFlashId(id);
+    setTimeout(() => setFlashId((f) => (f === id ? null : f)), 2600);
+  };
+  useEffect(() => {
+    if (!focus) return;
+    const t = setTimeout(() => ref.current?.querySelector(`[data-id="${focus}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    return () => clearTimeout(t);
+  }, [focus]);
+
+  const card = (p: VPerson, core: boolean) => {
+    const mine = p.id === me?.position_person_id;
+    return (
+      <div
+        key={p.id}
+        className={`mc g${p.gender || "O"} ${core ? "core" : ""} ${mine ? "mine" : ""} ${p.is_living ? "" : "dead"} ${flashId === p.id ? "flash" : ""}`}
+        tabIndex={0}
+        data-id={p.id}
+        onClick={() => pick(p.id)}
+        onKeyDown={(e) => e.key === "Enter" && pick(p.id)}
+      >
+        <div className="mav2"><Avatar g={p.gender} photo={p.photo_url} live={p.is_living} /></div>
+        <div className="mn">{dispName(p, true)}</div>
+        <div className="my">{R[p.id] || "साइनो स्पष्ट छैन"}</div>
+        <KidCount kids={kidsOf(p)} />
+        {mine ? <span className="me">तपाईं</span> : null}
+      </div>
+    );
+  };
+  const lrow = (p: VPerson) => (
+    <div key={p.id} className={`mlc ${p.is_living ? "" : "dead"} ${flashId === p.id ? "flash" : ""}`} data-id={p.id} onClick={() => pick(p.id)}>
+      <div className={`mav2 sm g${p.gender || "O"}`}><Avatar g={p.gender} photo={p.photo_url} live={p.is_living} /></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <b>{dispName(p)}</b>
+        <br />
+        <span className="mut">
+          {R[p.id] || "साइनो स्पष्ट छैन"}
+          {yr(p.birth_bs) ? " · " + np(yr(p.birth_bs)) : ""}
+        </span>
+      </div>
+      <KidCount kids={kidsOf(p)} />
+    </div>
+  );
+
+  const visible = groups
+    .map((gr, gi) => ({ gr, gi, l: gr.members.filter((p) => !ql || p.name.toLowerCase().includes(ql) || (R[p.id] || "").includes(ql)) }))
+    .filter((x) => x.l.length);
+
+  return (
+    <>
+      <section className="hero2">
+        <div className="hello">
+          <span className="hchip">{act ? ROLE_L[act] : ""}</span>
+          <h2>नमस्ते, {meName}</h2>
+          <p>{msg}</p>
+          <div className="stats">
+            <span><b>{np(ic)}</b> मुख्य परिवार</span>
+            <span><b>{np(access.acc ? access.acc.size : people.length)}</b> खुला</span>
+            <span><b>{np(people.length)}</b> कुल सदस्य</span>
+          </div>
+          <EventChips onOpen={(id) => { showCard(id); pick(id); }} />
+        </div>
+        {me?.position_person_id && byId[me.position_person_id] && <StoryCard person={byId[me.position_person_id]} />}
+        <div className="row">
+          {(
+            <button className="ghost" onClick={() => openDialog(<PersonForm action="add" />, true)}>
+              {isAdm ? "+ सदस्य थप्ने" : "+ सदस्य थप्ने अनुरोध"}
+            </button>
+          )}
+          <button className="ghost" onClick={() => openDialog(<AnchorDialog />)}>🧭 नाता सन्दर्भ</button>
+          {isStaff && <button className="ghost" onClick={() => setTab("ov")}>📊 Family Overview</button>}
+          <DownloadMenu />
+        </div>
+      </section>
+      <div className="stickybar">
+      <button className="locate" disabled={!base} onClick={() => base && showCard(base.id)}>📍 मेरो स्थान</button>
+      <PersonSearch
+        id="fq"
+        className="msw"
+        value={q}
+        people={visiblePeople}
+        rel={R}
+        onChange={(t) => {
+          qText.fam = t;
+          setQ(t);
+        }}
+        onChoose={(id) => {
+          const p = byId[id];
+          qText.fam = p?.name || "";
+          setQ(p?.name || "");
+          pick(id);
+          showCard(id);
+        }}
+      />
+      </div>
+      <div className="rchips">
+        <button className={`ghost ${mode === "grid" ? "on" : ""}`} onClick={() => setMode("grid")}>▦ थम्बनेल</button>
+        <button className={`ghost ${mode === "list" ? "on" : ""}`} onClick={() => setMode("list")}>☰ सूची</button>
+        <button
+          className="ghost"
+          onClick={() => setOpen(visible.some((x) => !open.has(x.gi)) ? new Set(groups.map((_, i) => i)) : new Set())}
+        >
+          ⇕ सबै खोल्ने / बन्द
+        </button>
+      </div>
+      <div id="fgroups" ref={ref}>
+        {visible.length ? (
+          visible.map(({ gr, gi, l }) => (
+            <details
+              className="acc"
+              key={gi}
+              open={open.has(gi)}
+              onToggle={(e) => {
+                const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                setOpen((o) => {
+                  if (o.has(gi) === isOpen) return o;
+                  const n = new Set(o);
+                  if (isOpen) n.add(gi);
+                  else n.delete(gi);
+                  return n;
+                });
+              }}
+            >
+              <summary>
+                <span className="acc-t">{gr.title}</span>
+                <span className="acc-n">{np(l.length)}</span>
+              </summary>
+              <div className="acc-b">
+                <div className={mode === "list" ? "mgrid" : "cgrid"}>
+                  {l.map((p) => (mode === "list" ? lrow(p) : card(p, has && gi === 0)))}
+                </div>
+              </div>
+            </details>
+          ))
+        ) : (
+          <div className="card">कोही भेटिएन।</div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ---------------- सदस्य tab ----------------
+type FKey = "gender" | "age" | "marital" | "surname";
+type Status = "live" | "dead" | "all";
+
+const KEYS: FKey[] = ["gender", "age", "marital", "surname"];
+const TABS: { k: FKey; label: string; opts: [string, string][] }[] = [
+  { k: "gender", label: "लिङ्ग", opts: [["F", "👩 महिला"], ["M", "👨 पुरुष"]] },
+  { k: "age", label: "उमेर", opts: [["0", "०–२०"], ["20", "२०–४०"], ["40", "४०–६०"], ["60", "६०–८०"], ["80", "८०+"]] },
+  { k: "marital", label: "वैवाहिक", opts: [["m", "विवाहित"], ["u", "अविवाहित"]] },
+  { k: "surname", label: "थर", opts: [["b2o", "बराल → अन्य"], ["o2b", "अन्य → बराल"]] },
+];
+const STATUS: [Status, string][] = [["all", "सबै"], ["live", "🟢 जीवित"], ["dead", "🕊 दिवंगत"]];
+const BARAL = "बराल";
+const EMPTY_F: Record<FKey, string[]> = { gender: [], age: [], marital: [], surname: [] };
+
+const ageGroupOf = (p: VPerson): string | null => {
+  if (!p.is_living && !p.death_bs) return null;
+  const a = ageN(p.birth_bs, p.is_living ? "" : p.death_bs);
+  return a == null ? null : String(Math.min(80, Math.floor(a / 20) * 20));
+};
+/** b2o = बरालबाट अन्य, o2b = अन्यबाट बराल (विवाहपछि थर बदलिएका महिला मात्र) */
+const surnameChangeOf = (g: Graph, p: VPerson): string | null => {
+  if (p.gender !== "F") return null;
+  const sp = g.spousesOf(p)[0];
+  const maiden = p.maiden_name || surnameOf(p.father_id ? g.byId[p.father_id]?.name : "");
+  const married = p.married_name || (sp ? surnameOf(g.byId[sp]?.name) : "");
+  if (!maiden || !married || maiden === married) return null;
+  if (maiden === BARAL) return "b2o";
+  if (married === BARAL) return "o2b";
+  return null;
+};
+const valueOf = (g: Graph, p: VPerson, k: FKey): string | null =>
+  k === "gender" ? p.gender || null : k === "age" ? ageGroupOf(p) : k === "marital" ? (g.spousesOf(p).length ? "m" : "u") : surnameChangeOf(g, p);
+
+export function MemView() {
+  const { g, me, perms, pick } = useVansh();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<Status>("live");
+  const [f, setF] = useState<Record<FKey, string[]>>(EMPTY_F);
+
+  const toggle = (k: FKey, v: string) =>
+    setF((cur) => ({ ...cur, [k]: cur[k].includes(v) ? cur[k].filter((x) => x !== v) : [...cur[k], v] }));
+  const total = KEYS.reduce((a, k) => a + f[k].length, 0);
+
+  const R = useMemo(() => relMap(g, me).R, [g, me]);
+  const visiblePeople = useMemo(() => g.people.filter((p) => perms.can(p.id)), [g.people, perms]);
+  const ql = q.trim().toLowerCase();
+
+  const { list, counts } = useMemo(() => {
+    const base = g.people.filter((p) => perms.can(p.id) && (status === "all" || (status === "live") === p.is_living));
+    // एउटै tab भित्र OR, फरक tab बीच AND. `skip` = त्यो tab को आफ्नै छनोट नगनिने (badge को सङ्ख्याका लागि)
+    const ok = (p: VPerson, skip?: FKey) =>
+      KEYS.every((k) => {
+        if (k === skip || !f[k].length) return true;
+        const v = valueOf(g, p, k);
+        return !!v && f[k].includes(v);
+      });
+    const list = base.filter((p) => ok(p) && (!ql || match(p.name, ql) || (R[p.id] || "").includes(ql))).sort(g.byBirth);
+    const counts: Record<string, number> = {};
+    TABS.forEach((t) => {
+      const pool = base.filter((p) => ok(p, t.k));
+      t.opts.forEach(([v]) => (counts[`${t.k}:${v}`] = pool.filter((p) => valueOf(g, p, t.k) === v).length));
+    });
+    return { list, counts };
+  }, [g, perms, status, f, ql, R]);
+
+  const statusLabel = STATUS.find(([k]) => k === status)![1];
+
+  return (
+    <>
+      <div className="mbar">
+        <PersonSearch id="mq" className="msw mbar-q" value={q} people={visiblePeople} rel={R} placeholder="🔍 सदस्य वा साइनो खोज्नुहोस्…" onChange={setQ} onChoose={(id) => pick(id)} />
+        <div className="mbar-f">
+          <DropFilter label="अवस्था" shown={status === "all" ? "" : statusLabel} single>
+            {STATUS.map(([k, l]) => (
+              <button key={k} role="menuitemradio" aria-checked={status === k} className={status === k ? "on" : ""} onClick={() => setStatus(k)}>
+                <span className="dd-box rad" /> {l}
+              </button>
+            ))}
+          </DropFilter>
+          {TABS.map((t) => (
+            <DropFilter key={t.k} label={t.label} count={f[t.k].length}>
+              {t.opts.map(([v, l]) => {
+                const on = f[t.k].includes(v);
+                return (
+                  <button key={v} role="menuitemcheckbox" aria-checked={on} className={on ? "on" : ""} onClick={() => toggle(t.k, v)}>
+                    <span className="dd-box" /> <span className="dd-l">{l}</span>
+                    <em>{np(counts[`${t.k}:${v}`] ?? 0)}</em>
+                  </button>
+                );
+              })}
+            </DropFilter>
+          ))}
+          {total > 0 && <button className="ghost mbar-x" onClick={() => setF(EMPTY_F)}>✕ हटाउनुहोस्</button>}
+        </div>
+      </div>
+      {total > 0 && (
+        <div className="mf-chips">
+          {TABS.flatMap((t) =>
+            f[t.k].map((v) => (
+              <button key={t.k + v} className="mf-chip" onClick={() => toggle(t.k, v)} aria-label="हटाउनुहोस्">
+                {t.label}: {t.opts.find(([x]) => x === v)?.[1]} ✕
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      <p className="mf-count"><b>{np(list.length)}</b> सदस्य देखाइएको</p>
+
+      <div className="mgrid" id="mg">
+        {list.length ? (
+          list.map((p) => (
+            <div key={p.id} className={`mlc ${p.is_living ? "" : "dead"}`} data-id={p.id} onClick={() => pick(p.id)}>
+              <div className={`mav2 sm g${p.gender || "O"}`}><Avatar g={p.gender} photo={p.photo_url} live={p.is_living} /></div>
+              <div>
+                <b>{dispName(p)}</b>
+                <br />
+                <span className="mut">
+                  {(p.gender === "M" ? "पुरुष" : p.gender === "F" ? "महिला" : "") + " · " + (np(yr(p.birth_bs)) || "?")}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="card mf-empty">
+            <b>कुनै सदस्य भेटिएन</b>
+            <p className="mut">खोज वा फिल्टर बदलेर हेर्नुहोस्।</p>
+            {total > 0 && <button onClick={() => setF(EMPTY_F)}>सबै फिल्टर हटाउनुहोस्</button>}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** A compact dropdown button with a checkbox / radio list. */
+function DropFilter({ label, count = 0, shown, single, children }: { label: string; count?: number; shown?: string; single?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const active = count > 0 || !!shown;
+  return (
+    <div className="dd" ref={ref}>
+      <button className={`ghost dd-btn ${active ? "on" : ""}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {label}
+        {shown ? <b>: {shown}</b> : null}
+        {count > 0 && <em>{np(count)}</em>}
+        <span className="dd-ch">▾</span>
+      </button>
+      {open && (
+        <div className="dd-menu popover" role="menu" onClick={() => single && setOpen(false)}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,343 @@
+"use client";
+// Small shared UI pieces: avatar, password field, searchable person picker, BS date field, dialog host.
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { getSiteAvatars, subscribeSiteAvatars } from "@/lib/vansh/avatars";
+import { composeDate, match, MONTHS_NE, na, np } from "@/lib/vansh/text";
+import { AD_MAX_YEAR, AD_MIN_YEAR, adToBsStr, neDate } from "@/lib/vansh/bs";
+import type { VPerson } from "@/lib/vansh/types";
+import type { Graph, Perms } from "@/lib/vansh/graph";
+import { useVansh } from "./VanshContext";
+
+/** photo_url (when set) overrides the default avatar everywhere. */
+export function Avatar({ g, photo, live }: { g?: string | null; photo?: string | null; live?: boolean | null }) {
+  const site = useSyncExternalStore(subscribeSiteAvatars, getSiteAvatars, () => ({}) as ReturnType<typeof getSiteAvatars>);
+  const [broken, setBroken] = useState<string | null>(null);
+  const url = (photo && photo !== broken ? photo : null) || (g === "F" ? site.F : site.M);
+  const dot = live == null ? null : <i className={`fdot ${live ? "live" : "gone"}`} title={live ? "जीवित" : "दिवंगत"} />;
+  return (
+    <>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="avimg" src={url} alt="" draggable={false} onError={() => photo && setBroken(photo)} />
+      ) : (
+        <svg aria-hidden="true">
+          <use href={`#${g === "F" ? "avF" : "avM"}`} width="100%" height="100%" />
+        </svg>
+      )}
+      {dot}
+    </>
+  );
+}
+
+/** A person's children as coloured counts: ♂ 2 ♀ 1 (nothing when there are none). */
+export function KidCount({ kids }: { kids: VPerson[] }) {
+  if (!kids.length) return null;
+  const sons = kids.filter((k) => k.gender !== "F").length;
+  const dau = kids.length - sons;
+  return (
+    <span className="kc" title="सन्तान">
+      {sons ? <em className="m">♂ {np(sons)}</em> : null}
+      {dau ? <em className="f">♀ {np(dau)}</em> : null}
+    </span>
+  );
+}
+
+const EYE = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const EYE_OFF = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M3 3l18 18" />
+  </svg>
+);
+
+export function PasswordField({
+  label, value, onChange, autoComplete, onEnter,
+}: { label: string; value: string; onChange: (v: string) => void; autoComplete: string; onEnter?: () => void }) {
+  const [show, setShow] = useState(false);
+  return (
+    <label>
+      {label}
+      <span className="pw">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
+        />
+        <button
+          type="button"
+          className="eye"
+          aria-label={show ? "पासवर्ड लुकाउनुहोस्" : "पासवर्ड देखाउनुहोस्"}
+          onClick={() => setShow((s) => !s)}
+        >
+          {show ? EYE_OFF : EYE}
+        </button>
+      </span>
+    </label>
+  );
+}
+
+// ---------- searchable person picker ----------
+export const SXMSG = "टाइप गरेको नाम सूचीबाट छान्नुहोस् वा '➕ नयाँ थप्नुहोस्' थिच्नुहोस्।";
+
+export interface SxState {
+  value: string;
+  newName: string;
+  text: string;
+  setText: (t: string) => void;
+  pickValue: (v: string, label: string) => void;
+  pickNew: () => void;
+  /** Typed text that is neither a chosen person nor a confirmed new name. */
+  pending: boolean;
+}
+
+export function useSx(initial: { value?: string | null; name?: string; label?: string }): SxState {
+  const [value, setValue] = useState(initial.value || "");
+  const [newName, setNewName] = useState(initial.name || "");
+  const [text, setTextRaw] = useState(initial.value ? initial.label || "" : initial.name ? initial.name + " (नयाँ)" : "");
+  return {
+    value,
+    newName,
+    text,
+    setText: (t) => {
+      setTextRaw(t);
+      setValue("");
+      setNewName("");
+    },
+    pickValue: (v, label) => {
+      setValue(v);
+      setNewName("");
+      setTextRaw(label);
+    },
+    pickNew: () => {
+      const n = text.trim();
+      setValue("");
+      setNewName(n);
+      setTextRaw(n + " (नयाँ)");
+    },
+    pending: !!text.trim() && !value && !newName,
+  };
+}
+
+export function personOptions(g: Graph, perms: Perms, extra?: (p: VPerson) => string): { v: string; t: string }[] {
+  return g.people.filter((p) => perms.can(p.id)).map((p) => ({ v: p.id, t: p.name + (extra ? extra(p) : "") }));
+}
+
+export function Sx({
+  st, options, allowNew,
+}: { st: SxState; options: { v: string; t: string }[]; allowNew?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const raw = st.text.trim();
+  const q = raw.toLowerCase();
+  const shown = options.filter((i) => !q || match(i.t, q)).slice(0, 40);
+  return (
+    <div className="sx">
+      <input
+        type="search"
+        placeholder="🔍 नाम टाइप गरेर खोज्नुहोस्…"
+        autoComplete="off"
+        value={st.text}
+        onChange={(e) => {
+          st.setText(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+      />
+      <div className="sxl" hidden={!open}>
+        {allowNew && raw && (
+          <div
+            className="addn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              st.pickNew();
+              setOpen(false);
+            }}
+          >
+            ➕ &quot;{raw}&quot; नयाँ थप्नुहोस्
+          </div>
+        )}
+        {shown.map((i) => (
+          <div
+            key={i.v}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              st.pickValue(i.v, i.t);
+              setOpen(false);
+            }}
+          >
+            {i.t}
+          </div>
+        ))}
+        {!shown.length && !(allowNew && raw) && <div className="none">भेटिएन</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- BS date field: one box, auto "YYYY-MM-DD" in Nepali digits ----------
+/** digits → "YYYY", "YYYY-MM" or "YYYY-MM-DD"; a month/day that can only be one digit long gets its leading 0. */
+function fmtDate(digits: string): string {
+  let y = digits.slice(0, 4);
+  let rest = digits.slice(4);
+  let m = "";
+  let d = "";
+  if (rest) {
+    if (+rest[0] > 1) rest = "0" + rest;
+    m = rest.slice(0, 2);
+    rest = rest.slice(2);
+  }
+  if (rest) {
+    if (+rest[0] > 3) rest = "0" + rest;
+    d = rest.slice(0, 2);
+  }
+  y = y.slice(0, 4);
+  return [y, m, d].filter((x, i) => x || i === 0).join("-");
+}
+
+export function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const initial = String(value || "").replace(/(-00)+$/, "");
+  const [text, setText] = useState(np(initial));
+  // the date can be typed in BS (default) or AD; it is always stored and shown as BS in Nepali digits
+  const [ad, setAd] = useState(false);
+  const plain = na(text);
+  const [y, m = "", d = ""] = plain.split("-");
+  const conv = ad && y.length === 4 && m.length === 2 && d.length === 2 ? adToBsStr(plain) : null;
+  const bad = ad
+    ? y.length === 4 && (+y < AD_MIN_YEAR || +y > AD_MAX_YEAR)
+      ? `ई.सं. ${np(AD_MIN_YEAR)} देखि ${np(AD_MAX_YEAR)} सम्मको मिति मात्र वि.सं. मा बदलिन्छ`
+      : d.length === 2 && !conv ? "यो ई.सं. मिति मिलेन" : ""
+    : (m.length === 2 && +m > 12 ? "महिना ०० (थाहा छैन) वा ०१ देखि १२ सम्म हुनुपर्छ" : "") ||
+      (d.length === 2 && +d > 32 ? "गते ०० (थाहा छैन) वा ०१ देखि ३२ सम्म हुनुपर्छ" : "");
+  const change = (raw: string) => {
+    let digits = na(raw).replace(/\D/g, "").slice(0, 8);
+    // a backspace over an auto-inserted hyphen must still delete a digit
+    if (raw.length < text.length && digits === plain.replace(/\D/g, "")) digits = digits.slice(0, -1);
+    const f = fmtDate(digits);
+    setText(np(f));
+    const [yy, mm, dd] = f.split("-");
+    if (ad) {
+      // only a complete, valid AD date is converted; until then the stored BS value is left alone
+      if (yy?.length === 4 && mm?.length === 2 && dd?.length === 2) {
+        const bs = adToBsStr(f);
+        if (bs) onChange(bs);
+      }
+      return;
+    }
+    onChange(composeDate(yy || "", mm && +mm >= 1 && +mm <= 12 ? mm : "", dd && +dd >= 1 && +dd <= 32 ? dd : ""));
+    // "2050-00-00" is a valid "only the year is known" date — keep it as typed
+  };
+  const switchTo = (toAd: boolean) => {
+    if (toAd === ad) return;
+    setAd(toAd);
+    if (toAd) setText(""); // AD is typed fresh; the existing BS value stays until a valid AD date replaces it
+    else setText(np(String(value || "").replace(/(-00)+$/, "")));
+  };
+  const finish = () => {
+    // leaving the box with a converted AD date: show it as the Nepali (BS) date it became
+    if (ad && conv) {
+      setAd(false);
+      setText(np(conv));
+    }
+  };
+  return (
+    <div className="dtr1">
+      <div className="dmode" role="group" aria-label="मितिको प्रकार">
+        <button type="button" className={ad ? "" : "on"} onClick={() => switchTo(false)}>वि.सं.</button>
+        <button type="button" className={ad ? "on" : ""} onClick={() => switchTo(true)}>ई.सं. (AD)</button>
+      </div>
+      <input
+        className="dsingle"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={10}
+        placeholder={ad ? "YYYY-MM-DD (ई.सं., जस्तै 1988-06-02)" : "बर्ष-महिना-गते (जस्तै २०४५-०५-१२)"}
+        aria-label={ad ? "मिति (ई.सं.)" : "मिति (वि.सं.)"}
+        aria-invalid={bad ? true : undefined}
+        value={text}
+        onChange={(e) => change(e.target.value)}
+        onBlur={finish}
+      />
+      {ad && conv && !bad && <small className="mut">= {neDate(conv)} (वि.सं.) — बाहिर थिचेपछि यही देखिन्छ</small>}
+      {ad && !conv && !bad && <small className="mut">पूरा मिति (वर्ष-महिना-गते) लेख्नुहोस्</small>}
+      {!ad && y.length === 4 && m.length === 2 && +m === 0 && !bad && <small className="mut">{np(y)} साल (महिना/गते थाहा छैन)</small>}
+      {!ad && m.length === 2 && +m >= 1 && +m <= 12 && !bad && <small className="mut">{MONTHS_NE[+m - 1]}{d.length === 2 ? ` ${np(+d)} गते` : ""}, {np(y)}</small>}
+      {bad && <small className="dterr">{bad}</small>}
+    </div>
+  );
+}
+
+// ---------- dialog host (native <dialog>, same look as the original) ----------
+export function DialogHost() {
+  const { dialog, closeDialog } = useVansh();
+  const ref = useRef<HTMLDialogElement>(null);
+  const [off, setOff] = useState({ x: 0, y: 0 });
+  const [peek, setPeek] = useState(false);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (dialog && !d.open) d.showModal();
+    if (!dialog && d.open) d.close();
+    if (!dialog) { setOff({ x: 0, y: 0 }); setPeek(false); }
+  }, [dialog]);
+  const moved = off.x !== 0 || off.y !== 0;
+  return (
+    <dialog
+      id="dlg"
+      ref={ref}
+      className={(dialog?.ed ? "ed" : "") + (moved ? " moved" : "") + (peek ? " peek" : "")}
+      style={{ translate: `${off.x}px ${off.y}px` }}
+      onClose={closeDialog}
+      onCancel={closeDialog}
+    >
+      {dialog && (
+        <div className="dlg-grip">
+          <span
+            className="dlg-drag"
+            title="तानेर सार्नुहोस्"
+            onPointerDown={(e) => {
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              drag.current = { x: e.clientX, y: e.clientY, ox: off.x, oy: off.y };
+            }}
+            onPointerMove={(e) => {
+              const d = drag.current;
+              if (!d) return;
+              const lim = (v: number, m: number) => Math.max(-m, Math.min(m, v));
+              setOff({ x: lim(d.ox + e.clientX - d.x, innerWidth), y: lim(d.oy + e.clientY - d.y, innerHeight) });
+            }}
+            onPointerUp={() => { drag.current = null; }}
+            onPointerCancel={() => { drag.current = null; }}
+            onDoubleClick={() => setOff({ x: 0, y: 0 })}
+          >⠿ तान्नुहोस्</span>
+          <button
+            type="button"
+            className="ghost dlg-peek"
+            title="थिचिराख्दा विन्डो पारदर्शी हुन्छ — पछाडिको सामग्री हेर्न"
+            aria-label="पछाडि हेर्ने"
+            onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setPeek(true); }}
+            onPointerUp={() => setPeek(false)}
+            onPointerCancel={() => setPeek(false)}
+          >👁</button>
+        </div>
+      )}
+      {dialog?.node}
+    </dialog>
+  );
+}
+
+export function Toast() {
+  const { toastMsg } = useVansh();
+  return (
+    <div id="toast" className={toastMsg ? "show" : ""}>
+      {toastMsg}
+    </div>
+  );
+}

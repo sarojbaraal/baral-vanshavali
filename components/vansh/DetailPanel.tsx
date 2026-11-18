@@ -1,0 +1,370 @@
+"use client";
+// Profile side panel (FamilySearch-style) — ported from the original app.js detail().
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { relMap, relsOf, genNo } from "@/lib/vansh/relations";
+import { ordinalOf } from "@/lib/vansh/kinship";
+import type { VPerson } from "@/lib/vansh/types";
+import { chartGoto } from "@/lib/vansh/chartGoto";
+import { neDate } from "@/lib/vansh/bs";
+import { generateAiSummary } from "@/lib/vansh/aiSummary";
+import { ageN, dispName, fbOk, maritalLabel, np, yr } from "@/lib/vansh/text";
+import { openDoc } from "@/lib/vansh/docs";
+import { useVansh } from "./VanshContext";
+import { Avatar, KidCount } from "./ui";
+import { AddMenu, DeleteDialog, InviteDialog, PersonForm } from "./PersonDialogs";
+
+function Box({ c, ic, l, children, mg }: { c: string; ic: string; l: string; children?: React.ReactNode; mg?: boolean }) {
+  if (!children) return null;
+  return (
+    <div className={`ib w${mg ? " mgl" : ""}`} style={{ ["--c" as string]: mg ? "var(--mg)" : c }}>
+      <span className="ii">{ic}</span>
+      <div>
+        <small>{l}</small>
+        <b>{children}</b>
+      </div>
+    </div>
+  );
+}
+
+/** Section heading that folds / unfolds its content. */
+function Sec({ id, title, col, toggle, children }: { id: string; title: React.ReactNode; col: Record<string, boolean>; toggle: (id: string) => void; children: React.ReactNode }) {
+  const shut = !!col[id];
+  return (
+    <>
+      <div
+        className={`pp-h pp-tg ${shut ? "shut" : ""}`}
+        id={id === "pi" ? "pi" : undefined}
+        role="button"
+        tabIndex={0}
+        aria-expanded={!shut}
+        onClick={() => toggle(id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggle(id);
+          }
+        }}
+      >
+        <span>{title}</span>
+        <i aria-hidden>▾</i>
+      </div>
+      {!shut && children}
+    </>
+  );
+}
+
+export default function DetailPanel({
+  depthOf, onGo, onPrint, top,
+}: {
+  /** Distance from the viewport top (below the header) when the panel is docked beside the page. */
+  top?: number;
+  depthOf?: (id: string) => number | undefined;
+  /** Called when a relative is clicked (tree view unfolds + glides there). */
+  onGo?: (id: string) => void;
+  onPrint?: (id: string) => void;
+}) {
+  const { db, g, me, sel, perms, pick, unpick, openDialog, toast, reload, setTab } = useVansh();
+  const [more, setMore] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  // folded sections are remembered on this device
+  const [col, setCol] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try {
+      setCol(JSON.parse(localStorage.getItem("vv_pp_col") || "{}") || {});
+    } catch {}
+  }, []);
+  const toggle = (id: string) =>
+    setCol((c) => {
+      const n = { ...c, [id]: !c[id] };
+      try { localStorage.setItem("vv_pp_col", JSON.stringify(n)); } catch {}
+      return n;
+    });
+  // the "More" dropdown closes on an outside click or Esc
+  useEffect(() => {
+    if (!more) return;
+    const down = (e: PointerEvent) => {
+      if (!moreRef.current?.contains(e.target as Node)) setMore(false);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setMore(false);
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", down);
+      document.removeEventListener("keydown", key);
+    };
+  }, [more]);
+
+  // desktop: remembered width, set by dragging the right edge
+  useEffect(() => {
+    try {
+      const w = parseInt(localStorage.getItem("vv_det_w") || "", 10);
+      if (w >= 300 && w <= 680) document.documentElement.style.setProperty("--det-w", w + "px");
+    } catch {}
+  }, []);
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const left = asideRef.current?.getBoundingClientRect().left || 0;
+    let w = 0;
+    const move = (ev: PointerEvent) => {
+      w = Math.max(300, Math.min(680, Math.round(ev.clientX - left)));
+      document.documentElement.style.setProperty("--det-w", w + "px");
+    };
+    const up = () => {
+      removeEventListener("pointermove", move);
+      removeEventListener("pointerup", up);
+      if (w) try { localStorage.setItem("vv_det_w", String(w)); } catch {}
+    };
+    addEventListener("pointermove", move);
+    addEventListener("pointerup", up);
+  };
+  // phone: drag the header down to close the bottom sheet
+  const swipe = useRef<{ y: number; dy: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (innerWidth > 640) return;
+    swipe.current = { y: e.touches[0].clientY, dy: 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s = swipe.current;
+    if (!s || !asideRef.current) return;
+    s.dy = Math.max(0, e.touches[0].clientY - s.y);
+    asideRef.current.style.transform = `translateY(${s.dy}px)`;
+    asideRef.current.style.transition = "none";
+  };
+  const onTouchEnd = () => {
+    const s = swipe.current;
+    swipe.current = null;
+    const el = asideRef.current;
+    if (!s || !el) return;
+    el.style.transition = "";
+    if (s.dy > 90) unpick();
+    else el.style.transform = "";
+  };
+  const [busyAi, setBusyAi] = useState(false);
+  // root ancestor → … → this person, following the father (the mother when no father is recorded)
+  const lineage = useMemo(() => {
+    const out: VPerson[] = [];
+    let cur = sel ? g.byId[sel] : undefined;
+    const seen = new Set<string>();
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      out.unshift(cur);
+      const nxt: string | null | undefined = cur.father_id || cur.mother_id;
+      cur = nxt ? g.byId[nxt] : undefined;
+    }
+    return out;
+  }, [g.byId, sel]);
+  const p = sel ? g.byId[sel] : undefined;
+  if (!p) return null;
+
+  const { can, canEdit, isAdm, isStaff, nm } = perms;
+  const ce = canEdit(p.id);
+  const lim = !!p.name_only;
+  const rl = relMap(g, me).R[p.id];
+  const ord = ordinalOf(g, p.id);
+  const RL: { q: typeof p; l: string; self?: boolean }[] = relsOf(g, p);
+  RL.splice(RL.filter((x) => x.l === "बुबा" || x.l === "आमा").length, 0, { q: p, l: "यही प्रोफाइल", self: true });
+  const age = p.is_living || p.death_bs ? ageN(p.birth_bs, p.is_living ? "" : p.death_bs) : null;
+
+  const showInChart = () => {
+    if (!p) return;
+    if (onGo) onGo(p.id);
+    else {
+      chartGoto.id = p.id;
+      setTab("tree");
+    }
+  };
+
+  const goProfile = () => {
+    setMore(false);
+    if (col.pi) toggle("pi");
+    setTimeout(() => document.getElementById("pi")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+
+  const aiSummary = async () => {
+    setBusyAi(true);
+    toast("🤖 AI ले विश्लेषण गर्दैछ...");
+    try {
+      await generateAiSummary(db, g, p);
+      toast("✅ AI सारांश सुरक्षित भयो!");
+      await reload();
+    } catch (err) {
+      toast("❌ AI असफल: " + (err as Error).message);
+    } finally {
+      setBusyAi(false);
+    }
+  };
+
+  return (
+    <>
+    <aside id="det" ref={asideRef} style={top ? { top } : undefined}>
+      <div className="pp-fix" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+        <div className="sheet-handle" />
+        <button className="ghost pp-x" id="dx" aria-label="बन्द" onClick={unpick}>×</button>
+        <div className="pp-top">
+          <div className="pp-avw">
+            <div className={`pp-av g${p.gender || "O"}`}>
+              <Avatar g={p.gender} photo={p.photo_url} live={p.is_living} />
+            </div>
+          </div>
+          <div className="pp-info">
+            <h3>{dispName(p)}</h3>
+            {rl && <div className="pp-l">💠 {rl === "तपाईं" ? "तपाईं" : "तपाईंको " + rl}</div>}
+            {ord && <div className="pp-l">🔢 {ord} {p.gender === "F" ? "छोरी" : "छोरा"}</div>}
+            <div className="pp-l">
+              🧬 Gen {np(genNo(g, p.id, depthOf))}
+              {age != null ? " · उमेर " + np(age) + " वर्ष" : ""}
+            </div>
+            {g.addrOf(p) && <div className="pp-l">📍 {g.addrOf(p)}</div>}
+          </div>
+        </div>
+        {!lim && (
+          <div className="pp-act">
+            <button className="ghost" onClick={showInChart} title="चार्टमा हेर्नुहोस्">
+              <i>🌳</i>चार्ट
+            </button>
+            {isAdm && (
+              <button className="ghost" disabled={busyAi} onClick={aiSummary} title="AI सारांश">
+                <i>✨</i>AI
+              </button>
+            )}
+            {ce && (
+              <>
+                <button className="ghost" onClick={() => openDialog(<PersonForm action="update" p={p} />, true)} title={isAdm ? "सच्याउने" : "सच्याउने (अनुरोध)"}>
+                  <i>✏️</i>Edit
+                </button>
+                <button className="ghost" onClick={() => openDialog(<AddMenu p={p} />)}><i>➕</i>Add</button>
+              </>
+            )}
+            <div className="pp-moreW" ref={moreRef}>
+              <button className={`ghost ${more ? "on" : ""}`} aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((m) => !m)}>
+                <i>⋯</i>More
+              </button>
+              {more && (
+                <div className="pp-menu" role="menu">
+                  <button role="menuitem" onClick={goProfile}>🪪 प्रोफाइल</button>
+                  {onPrint && <button role="menuitem" onClick={() => { setMore(false); onPrint(p.id); }}>🖨️ प्रिन्ट</button>}
+                  {ce && isAdm && <button role="menuitem" onClick={() => { setMore(false); openDialog(<InviteDialog p={p} />); }}>🔗 निम्तो लिंक</button>}
+                  {ce && (
+                    <button role="menuitem" className="bad" onClick={() => { setMore(false); openDialog(<DeleteDialog p={p} />); }}>
+                      {isAdm ? "🗑 हटाउने" : "🗑 हटाउने अनुरोध"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {lim ? (
+        <p className="mut" style={{ marginTop: "1rem" }}>यो शाखाको नाम मात्र हेर्न मिल्छ।</p>
+      ) : (
+        <>
+          {p.ai_summary && (
+            <Sec id="ai" title="✨ AI सारांश" col={col} toggle={toggle}>
+              <div className="ib w" style={{ ["--c" as string]: "#8B5CF6" }}>
+                <span className="ii">🤖</span>
+                <div>
+                  <small>AI विश्लेषण</small>
+                  <p style={{ margin: "0.5rem 0 0", lineHeight: 1.5, fontSize: "0.9rem" }}>{p.ai_summary}</p>
+                  {!!p.ai_tags?.length && (
+                    <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      {p.ai_tags.map((t) => (
+                        <span key={t} style={{ background: "var(--acc-glow)", color: "var(--acc)", padding: "0.2rem 0.6rem", borderRadius: 99, fontSize: "0.75rem", fontWeight: 600 }}>
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Sec>
+          )}
+          {lineage.length > 1 && (
+            <Sec id="lin" title="वंश परम्परा" col={col} toggle={toggle}>
+              <p className="kpt">
+                {lineage.map((x, i) => (
+                  <React.Fragment key={x.id}>
+                    {i > 0 && <span className="ka">→</span>}
+                    {can(x.id) ? (
+                      <button className={`kl ${x.id === p.id ? "ke" : ""}`} onClick={() => x.id !== p.id && pick(x.id)}>{dispName(x, true)}</button>
+                    ) : (
+                      <span>{nm(x)}</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </p>
+            </Sec>
+          )}
+          <Sec id="fam" title="परिवार" col={col} toggle={toggle}>
+          {RL.length ? (
+            RL.map(({ q, l, self }) => {
+              const ok = can(q.id);
+              return (
+                <div
+                  key={q.id + l}
+                  className={`fr ${ok ? "" : "locked"} ${self ? "hl" : ""}`}
+                  onClick={() => {
+                    if (!ok || self) return;
+                    if (onGo) onGo(q.id);
+                    pick(q.id);
+                  }}
+                >
+                  {ok ? <i className={`st ${q.is_living ? "live" : "gone"}`} title={q.is_living ? "जीवित" : "दिवंगत"} /> : <span>🔒</span>}
+                  <div className="fn">
+                    <b>{ok ? dispName(q) : nm(q)}</b>
+                    <small>
+                      {l}
+                      {ok && yr(q.birth_bs) ? " · " + np(yr(q.birth_bs)) : ""}
+                    </small>
+                  </div>
+                  {ok && <KidCount kids={g.kidsOf(q)} />}
+                </div>
+              );
+            })
+          ) : (
+            <p className="mut">कुनै नाता जोडिएको छैन।</p>
+          )}
+          </Sec>
+          <Sec id="pi" title="व्यक्तिगत विवरण" col={col} toggle={toggle}>
+          <Box c="#F59E0B" ic="🎂" l="जन्म मिति">{neDate(p.birth_bs)}</Box>
+          {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{neDate(p.death_bs)}</Box>}
+          {!p.is_living && <Box c="#6B7280" ic="🪦" l="मृत्यु स्थान" mg>{p.death_place}</Box>}
+          <Box c="" ic="🎓" l="शिक्षा" mg>{p.education}</Box>
+          <Box c="" ic="💼" l="पेशा" mg>{p.occupation}</Box>
+          <Box c="" ic="🏢" l="कार्यरत संस्था" mg>{p.organization}</Box>
+          <Box c="" ic="👫" l="बैवाहिक स्थिति" mg>{p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : null}</Box>
+          <Box c="" ic="💒" l="विवाह मिति" mg>{neDate(p.marriage_bs)}</Box>
+          {p.gender === "F" && (
+            <>
+              <Box c="#EC4899" ic="👰" l="विवाहअघिको थर">{p.maiden_name}</Box>
+              <Box c="#EF4444" ic="💍" l="विवाहपछिको थर">{p.married_name}</Box>
+            </>
+          )}
+          <Box c="#F59E0B" ic="📌" l="जन्म स्थान">{p.birth_place}</Box>
+          <Box c="#14B8A6" ic="📞" l="फोन">{p.phone}</Box>
+          {(isStaff || p.id === me?.position_person_id) && <Box c="#3B82F6" ic="✉️" l="इमेल (लगइन)">{p.email}</Box>}
+          <Box c="#8B5CF6" ic="📍" l="ठेगाना">{g.addrOf(p)}</Box>
+          {fbOk(p.facebook) && (
+            <Box c="#1877F2" ic="🔗" l="Facebook">
+              <a href={p.facebook!} target="_blank" rel="noopener noreferrer">प्रोफाइल खोल्नुहोस्</a>
+            </Box>
+          )}
+          <Box c="#D97706" ic="📝" l="टिप्पणी">{p.notes}</Box>
+          {!!p.documents?.length && (
+            <Box c="#0EA5E9" ic="📎" l="कागजात (PDF)">
+              <span className="dl">
+                {p.documents.map((d) => (
+                  <button key={d.path} type="button" className="ghost" onClick={async () => { const e = await openDoc(db, d.path); if (e) toast(e); }}>📄 {d.name}</button>
+                ))}
+              </span>
+            </Box>
+          )}
+          </Sec>
+        </>
+      )}
+    </aside>
+    <div className="det-grip" style={top ? { top } : undefined} role="separator" aria-orientation="vertical" aria-label="चौडाइ मिलाउनुहोस्" onPointerDown={startResize} />
+    </>
+  );
+}
