@@ -13,7 +13,6 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // original vanilla app kept for reference only (not built or served)
-    "legacy/**",
   ]),
   {
     // Ported imperative code (tree pan/zoom, dialogs): strict React-Compiler rules reported as warnings.
