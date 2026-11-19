@@ -89,7 +89,7 @@ const invTok = (): string | null => {
   }
 };
 
-const TABS: TabKey[] = ["fam", "tree", "mem", "mine", "admin", "ov"];
+const TABS: TabKey[] = ["me", "fam", "tree", "mem", "mine", "admin", "ov"];
 /** The public navigation links here as /app?tab=tree|fam|mine; unknown values fall back to the family list. */
 function tabFromUrl(): TabKey {
   try {

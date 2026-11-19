@@ -1,21 +1,23 @@
 "use client";
 // App shell: header (tabs, user, theme), the active view, profile panel, dialogs, toast, PWA install button.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DownloadDialog } from "./DownloadMenu";
 import Link from "next/link";
 import { ROLE_L } from "@/lib/vansh/graph";
 import { np } from "@/lib/vansh/text";
 import type { Role, TabKey } from "@/lib/vansh/types";
 import { VanshProvider, useVansh } from "./VanshContext";
-import { DialogHost, Toast } from "./ui";
+import { Avatar, DialogHost, Toast } from "./ui";
 import { AuthView, PendingView, PosView, ResetView } from "./AuthViews";
 import { FamView, MemView } from "./ListViews";
-import SiteNav from "@/components/site/SiteNav";
+import SiteNav, { type AccountAction, type AccountInfo } from "@/components/site/SiteNav";
 import TreeView from "./TreeView";
 import DetailPanel from "./DetailPanel";
-import { AdminView, MineView } from "./RequestViews";
+import { AdminView } from "./RequestViews";
+import ProfileView from "./ProfileView";
+import { PrivacyDialog, ReportDialog } from "./AccountDialogs";
 import OverviewView from "./OverviewView";
-import { PasswordDialog } from "./PersonDialogs";
+import { AnchorDialog, PasswordDialog, PersonForm } from "./PersonDialogs";
 import { useDailyEvents, useTodayLabel } from "./HeroAi";
 
 const APP_VER = process.env.NEXT_PUBLIC_APP_VER || "dev";
@@ -52,7 +54,7 @@ function Shell() {
   useEffect(() => {
     const f = () => {
       setWide(innerWidth > 640);
-      const r = document.querySelector(".appbar")?.getBoundingClientRect();
+      const r = document.querySelector(".sn")?.getBoundingClientRect();
       setHdrH(Math.max(0, Math.round(r?.bottom ?? 52)) + 6);
     };
     f();
@@ -98,11 +100,6 @@ function Shell() {
     return () => document.body.classList.remove("det-open");
   }, [pushed]);
 
-  // "हाम्रो वंश", "परिवार शाखाहरु" and "मेरो खाता" live in the shared top navigation; only the extra views are here
-  const tabs: [TabKey, string][] = [
-    ["mem", "सदस्य"],
-    ...(perms.isStaff ? ([["admin", "एडमिन"]] as [TabKey, string][]) : []),
-  ];
 
   const dispName = (me?.position_person_id && people.find((p) => p.id === me.position_person_id)?.name) || me?.full_name || me?.email || "";
   const [oauthOnly, setOauthOnly] = useState(false);
@@ -122,6 +119,41 @@ function Shell() {
       <button className="ghost" onClick={() => setPreviewAs(null)}>बन्द गर्ने</button>
     </div>
   ) : null;
+  const meP = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
+  const account: AccountInfo | null = showWho
+    ? {
+        name: dispName,
+        avatar: <Avatar g={meP?.gender} photo={meP?.photo_url} />,
+        roles: roles.map((r) => ({ key: r, label: ROLE_L[r] })),
+        act,
+        onRole: (k) => setAct(k as Role),
+        staff: perms.isStaff,
+        oauthOnly,
+        version: `आज ${todayTxt}${perms.isAdm ? ` · Build: ${APP_VER}` : ` · ${APP_VER}`}`,
+        onAction: (a) => {
+          if (a === "profile") setTab("me");
+          else if (a === "add") openDialog(<PersonForm action="add" />, true);
+          else if (a === "kin") openDialog(<AnchorDialog />);
+          else if (a === "download") openDialog(<DownloadDialog />);
+          else if (a === "privacy") openDialog(<PrivacyDialog />);
+          else if (a === "report") openDialog(<ReportDialog />);
+          else if (a === "password") openDialog(<PasswordDialog />);
+          else if (a === "logout") db.auth.signOut();
+        },
+      }
+    : null;
+  const doRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!inApp || doRef.current) return;
+    const u = new URL(location.href);
+    const d = u.searchParams.get("do");
+    if (!d) return;
+    doRef.current = d;
+    u.searchParams.delete("do");
+    history.replaceState(null, "", u.pathname + u.search);
+    account?.onAction(d as AccountAction);
+  });
+
   let body: React.ReactNode = null;
   if (phase === "auth")
     body = (
@@ -140,7 +172,8 @@ function Shell() {
       fam: <FamView />,
       tree: <TreeView />,
       mem: <MemView />,
-      mine: <MineView />,
+      me: <ProfileView />,
+      mine: <ProfileView />,
       admin: <AdminView />,
       ov: <OverviewView />,
     }[eff];
@@ -148,45 +181,13 @@ function Shell() {
   return (
     <>
       <SiteNav
-        active={eff === "tree" ? "lineage" : eff === "fam" || eff === "ov" ? "branches" : eff === "mine" ? "account" : "none"}
-        signedIn={inApp}
+        active={
+          eff === "tree" ? "lineage" : eff === "fam" || eff === "ov" ? "branches" : eff === "me" || eff === "mine" ? "profile"
+          : eff === "mem" ? "members" : eff === "admin" ? "admin" : "none"
+        }
+        account={account}
         onTab={inApp ? (t) => setTab(t) : undefined}
       />
-      {(inApp || showWho) && (
-      <div className="appbar">
-        <nav id="tabs" aria-label="मुख्य मेनु">
-          {inApp &&
-            tabs.map(([k, l]) => (
-              <button key={k} className={eff === k || (k === "fam" && eff === "ov") ? "on" : ""} onClick={() => setTab(k)}>
-                {l}
-              </button>
-            ))}
-        </nav>
-        <div id="who">
-          {showWho && (
-            <>
-              <span className="wn">{dispName}</span>
-              {roles.length > 1 ? (
-                <select aria-label="भूमिका छान्नुहोस्" value={act || ""} onChange={(e) => setAct(e.target.value as Role)}>
-                  {roles.map((r) => (
-                    <option key={r} value={r}>{ROLE_L[r]}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className="tag">{(act && ROLE_L[act]) || "पर्खाइमा"}</span>
-              )}
-              {oauthOnly && (
-                <button className="ghost" id="pwb" title="इमेल/पासवर्ड जोड्ने" aria-label="इमेल/पासवर्ड जोड्ने" onClick={() => openDialog(<PasswordDialog />)}>🔑</button>
-              )}
-              <button className="ghost" id="out" onClick={() => db.auth.signOut()}>बाहिर</button>
-            </>
-          )}
-        </div>
-        <span id="ver" tabIndex={0} aria-label="संस्करण" data-t={`आज ${todayTxt}${perms.isAdm ? ` · Build: ${APP_VER}` : ` · ${APP_VER}`}`}>
-          ⓘ
-        </span>
-      </div>
-      )}
       {inApp && (!online || outbox.length > 0) && (
         <div className="offb" role="status">
           {!online && <div>📴 इन्टरनेट छैन — पछिल्लो सुरक्षित डाटा देखाइँदैछ। हेर्ने, खोज्ने, थप्ने र सच्याउने सबै चल्छ; परिवर्तन इन्टरनेट आएपछि आफैँ सर्भरमा जान्छ।</div>}

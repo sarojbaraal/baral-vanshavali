@@ -2,7 +2,7 @@ import Link from "next/link";
 import "./site.css";
 import { Logo } from "./SiteNav";
 
-export const CONTACT_EMAIL = "hello@sarojbaral.com.np";
+export const CONTACT_EMAIL = "vanshavali@sarojbaral.com.np";
 
 export default function SiteFooter() {
   return (
