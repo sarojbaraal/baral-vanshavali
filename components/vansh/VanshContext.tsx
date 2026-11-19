@@ -89,13 +89,23 @@ const invTok = (): string | null => {
   }
 };
 
+const TABS: TabKey[] = ["fam", "tree", "mem", "mine", "admin", "ov"];
+/** The public navigation links here as /app?tab=tree|fam|mine; unknown values fall back to the family list. */
+function tabFromUrl(): TabKey {
+  try {
+    const t = new URLSearchParams(location.search).get("tab") as TabKey | null;
+    if (t && TABS.includes(t)) return t;
+  } catch {}
+  return "fam";
+}
+
 export function VanshProvider({ children }: { children: React.ReactNode }) {
   const db = useMemo(() => createClient(), []);
   const [phase, setPhase] = useState<Phase>("loading");
   const [me, setMe] = useState<VProfile | null>(null);
   const [act, setActState] = useState<Role | null>(null);
   const [people, setPeople] = useState<VPerson[]>([]);
-  const [tab, setTabState] = useState<TabKey>("intro");
+  const [tab, setTabState] = useState<TabKey>(tabFromUrl);
   const [sel, setSel] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState("");
   const [dialog, setDialog] = useState<DialogState | null>(null);

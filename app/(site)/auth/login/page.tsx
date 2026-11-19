@@ -30,7 +30,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch {
       setErrorMsg("अप्रत्याशित समस्या आयो। कृपया पुनः प्रयास गर्नुहोस्।");

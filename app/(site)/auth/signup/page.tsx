@@ -57,7 +57,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch {
       setErrorMsg("दर्ता प्रक्रियामा अप्रत्याशित त्रुटि उत्पन्न भयो।");
