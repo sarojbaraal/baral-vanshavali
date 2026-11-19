@@ -2,7 +2,7 @@
 
 export type Gender = "M" | "F" | "O" | "" | null;
 export type Role = "admin" | "moderator" | "premium" | "general";
-export type TabKey = "fam" | "tree" | "mem" | "mine" | "admin" | "ov";
+export type TabKey = "me" | "fam" | "tree" | "mem" | "mine" | "admin" | "ov";
 
 /** unknown is the default; married / divorced show the spouse block in the edit form. */
 export type MaritalStatus = "married" | "unmarried" | "divorced" | "unknown";
@@ -42,6 +42,8 @@ export interface VPerson {
   email?: string | null;
   facebook?: string | null;
   photo_url?: string | null;
+  /** who may see each field: absent = all members; "near" = close relatives; "me" = only the person and admins */
+  privacy?: Record<string, "near" | "me"> | null;
   ai_summary?: string | null;
   /** Second-person "तपाईंको कथा" for the person's own home screen. */
   ai_summary_self?: string | null;

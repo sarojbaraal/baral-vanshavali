@@ -399,7 +399,7 @@ dialog.ed { width: min(960px, 96vw); padding: 0; overflow: hidden; }
 .hscroll { max-height: 56vh; overflow: auto; padding-right: .2rem; }
 .req-card { display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0; }
 .adm { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 1.4rem; align-items: start; }
-.adm-side { position: sticky; top: 70px; order: 2; padding: .7rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+.adm-side { position: sticky; top: 16px; order: 2; padding: .7rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
 .adm-side h4 { padding: .3rem .6rem .5rem; }
 .adm-side button { width: 100%; justify-content: space-between; min-height: 42px; margin-bottom: 3px; color: var(--ink-2); background: transparent; border: 0; box-shadow: none; font-weight: 500; }
 .adm-side button:hover:not(:disabled) { background: var(--cy-glow); transform: none; box-shadow: none; }
@@ -514,7 +514,7 @@ dialog.ed { width: min(960px, 96vw); padding: 0; overflow: hidden; }
 
 /* sticky "my place" + search on the family tab */
 .stickybar {
-  position: sticky; top: 60px; z-index: 40; display: flex; gap: .6rem; align-items: center; margin: 0 -.4rem 1rem; padding: .5rem .5rem;
+  position: sticky; top: 8px; z-index: 40; display: flex; gap: .6rem; align-items: center; margin: 0 -.4rem 1rem; padding: .5rem .5rem;
   background: color-mix(in srgb, var(--bg) 70%, transparent); border-radius: 18px;
   backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
@@ -551,7 +551,7 @@ dialog.ed { width: min(960px, 96vw); padding: 0; overflow: hidden; }
   .det-grip { display: none; }
   #det { width: auto; }
   .sheet-handle { display: block; width: 40px; height: 4px; margin: -.5rem auto .7rem; border-radius: 4px; background: var(--line-2); }
-  .stickybar { top: 56px; margin: 0 -.3rem .8rem; flex-wrap: wrap; }
+  .stickybar { top: 8px; margin: 0 -.3rem .8rem; flex-wrap: wrap; }
   .stickybar .qw { flex: 1 1 100%; }
 }
 
@@ -813,7 +813,7 @@ dialog.moved { box-shadow: 0 14px 50px rgba(0, 0, 0, .45); }
 }
 
 /* ---------- offline banner ---------- */
-.offb { position: sticky; top: 60px; z-index: 40; margin: .6rem auto 0; max-width: 1100px; display: grid; gap: .35rem; padding: .6rem .9rem; font-size: .88rem; line-height: 1.5; border-radius: 14px; color: var(--ink); background: color-mix(in srgb, #d9b36a 22%, var(--solid)); border: 1px solid color-mix(in srgb, #d9b36a 60%, transparent); }
+.offb { position: sticky; top: 8px; z-index: 40; margin: .6rem auto 0; max-width: 1100px; display: grid; gap: .35rem; padding: .6rem .9rem; font-size: .88rem; line-height: 1.5; border-radius: 14px; color: var(--ink); background: color-mix(in srgb, #d9b36a 22%, var(--solid)); border: 1px solid color-mix(in srgb, #d9b36a 60%, transparent); }
 .offb button { margin-left: .6rem; min-height: 32px; padding: .15rem .7rem; font-size: .8rem; }
 .offb .offe { color: var(--bad, #c0392b); }
 
@@ -880,3 +880,10 @@ a.abtn:hover { color: var(--cy); border-color: var(--cy); }
 .dl { display: grid; gap: .3rem; }
 .dl button { text-align: left; }
 .gate { border-color: var(--mg); margin-top: .5rem; }
+
+/* profile tab (basic) */
+.prof-head { display: flex; gap: 1.2rem; align-items: center; }
+.prof-av { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; border: 3px solid var(--mg); background: var(--bg-2); flex: none; display: block; }
+.prof-av img, .prof-av svg { width: 100%; height: 100%; object-fit: cover; }
+.prof-head h2 { margin: 0 0 .2rem; }
+.prof-h { margin: 1.4rem 0 .5rem; }

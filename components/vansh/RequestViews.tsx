@@ -74,7 +74,36 @@ export function MineView() {
 }
 
 // ---------------- admin ----------------
-type Sec = "req" | "new" | "mem" | "hist" | "rev" | "view" | "as";
+type Sec = "req" | "new" | "mem" | "hist" | "rev" | "view" | "as" | "msg";
+interface SiteMsg { id: string; kind: "contact" | "problem"; name: string | null; email: string | null; subject: string | null; body: string; page: string | null; sender: string | null; status: "new" | "read" | "done"; created_at: string }
+
+/** Messages from the contact form and "समस्या रिपोर्ट" (admin only). */
+function InboxPanel({ rows, onSet }: { rows: SiteMsg[]; onSet: (id: string, st: SiteMsg["status"]) => void }) {
+  if (!rows.length) return <div className="card">अहिलेसम्म कुनै सन्देश आएको छैन।</div>;
+  return (
+    <>
+      {rows.map((m) => (
+        <div className={`card msgc ${m.status}`} key={m.id}>
+          <p className="mut">
+            {m.kind === "problem" ? "⚠ समस्या" : "✉ सम्पर्क"} · {new Date(m.created_at).toLocaleString("ne-NP")}
+            {m.status === "new" ? " · नयाँ" : m.status === "done" ? " · सकियो" : ""}
+          </p>
+          <h4>{m.subject || (m.kind === "problem" ? "समस्या रिपोर्ट" : "सन्देश")}</h4>
+          <p style={{ whiteSpace: "pre-wrap" }}>{m.body}</p>
+          <p className="mut">
+            {[m.name || m.sender, m.email].filter(Boolean).join(" · ")}
+            {m.page ? ` · पृष्ठ: ${m.page}` : ""}
+          </p>
+          <div className="row">
+            {m.email && <a className="btn ghost" href={`mailto:${m.email}?subject=${encodeURIComponent("Re: " + (m.subject || "बराल वंशावली"))}`}>इमेलबाट जवाफ</a>}
+            {m.status !== "done" ? <button onClick={() => onSet(m.id, "done")}>सकियो</button> : <button className="ghost" onClick={() => onSet(m.id, "new")}>फेरि खोल्ने</button>}
+            {m.status === "new" && <button className="ghost" onClick={() => onSet(m.id, "read")}>पढियो</button>}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
 const REQ_SEL = "*, profiles!change_requests_requested_by_fkey(full_name,email)";
 
 function RoleBoxes({ roles, onChange }: { roles: string[]; onChange: (r: string[]) => void }) {
@@ -176,6 +205,7 @@ export function AdminView() {
   const [reqCat, setReqCat] = useState("all");
   const [histOpen, setHistOpen] = useState<string[]>([]);
   const [viewN, setViewN] = useState(0);
+  const [msgs, setMsgs] = useState<SiteMsg[]>([]);
   const [data, setData] = useState<{ reqs: ChangeRequest[]; users: VProfile[]; hist: ChangeRequest[] } | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -189,6 +219,8 @@ export function AdminView() {
     if (adm) {
       const { data: vr } = await db.rpc("admin_view_requests");
       setViewN(((vr as { status: string }[]) || []).filter((r) => r.status === "pending").length);
+      const { data: ms } = await db.rpc("list_messages");
+      setMsgs((ms as SiteMsg[]) || []);
     }
     setData({ reqs: (reqs as ChangeRequest[]) || [], users: (users as VProfile[]) || [], hist: (hist as ChangeRequest[]) || [] });
   }, [db, adm]);
@@ -210,7 +242,7 @@ export function AdminView() {
   const groups = groupBatches(reqs);
   const okIds = hist.filter((r) => r.status === "approved").map((r) => r.id);
   const cn = (c: string) => (c === "all" ? groups.length : groups.filter((x) => x.items[0].action === c).length);
-  const keys: Sec[] = adm ? ["req", "view", "new", "mem", "rev", "as", "hist"] : ["req"];
+  const keys: Sec[] = adm ? ["req", "msg", "view", "new", "mem", "rev", "as", "hist"] : ["req"];
   const cur: Sec = keys.includes(sec) ? sec : keys[0];
 
   const approve = async (ids: string[]) => {
@@ -276,6 +308,12 @@ export function AdminView() {
     hist: ["🕘 अनुरोध इतिहास", hist.length],
     view: ["👁 हेर्ने अनुमति", viewN],
     as: ["🔎 पूर्वावलोकन", 0],
+    msg: ["✉ सन्देश", msgs.filter((m) => m.status === "new").length],
+  };
+  const setMsg = async (id: string, st: SiteMsg["status"]) => {
+    const { error } = await db.rpc("set_message_status", { p_id: id, p_status: st });
+    if (error) return toast("⚠ " + error.message);
+    setMsgs((x) => x.map((m) => (m.id === id ? { ...m, status: st } : m)));
   };
 
   const CATS: [string, string][] = [["all", "सबै"], ["add", "➕ थप्ने"], ["update", "✏ सच्याउने"], ["delete", "🗑 हटाउने"]];
@@ -330,6 +368,8 @@ export function AdminView() {
     body = <ViewRequestsPanel onCount={setViewN} />;
   } else if (cur === "as") {
     body = <PreviewAsPanel />;
+  } else if (cur === "msg") {
+    body = <InboxPanel rows={msgs} onSet={setMsg} />;
   } else if (cur === "new") {
     body = <>{pend.map((u) => <UserCard key={u.id} u={u} isNew onSave={saveUser} onAnchor={() => anchorFor(u)} onSuspend={suspend} onDelete={delUser} />)}</>;
   } else if (cur === "mem") {
@@ -388,7 +428,7 @@ export function AdminView() {
   }
 
   const [ttl, cnt] = sections[cur];
-  const empty = cnt === 0 && cur !== "hist" && cur !== "rev" && cur !== "view" && cur !== "as";
+  const empty = cnt === 0 && cur !== "hist" && cur !== "rev" && cur !== "view" && cur !== "as" && cur !== "msg";
   return (
     <div className="adm">
       <div className="adm-main">
