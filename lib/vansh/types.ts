@@ -42,6 +42,10 @@ export interface VPerson {
   email?: string | null;
   facebook?: string | null;
   photo_url?: string | null;
+  /** long biography (AI-written until a person edits it) */
+  bio?: string | null;
+  bio_ai?: boolean | null;
+  bio_at?: string | null;
   /** who may see each field: absent = all members; "near" = close relatives; "me" = only the person and admins */
   privacy?: Record<string, "near" | "me"> | null;
   ai_summary?: string | null;
