@@ -20,6 +20,7 @@
 .sn .sn-menu a.on { font-weight: 700; border-bottom-color: var(--c-green); }
 .sn .sn-menu a.sn-cta { padding: .6rem 1.2rem; border-radius: 8px; background: var(--c-green); color: #fff; border: 0; font-weight: 600; }
 .sn .sn-menu a.sn-cta:hover { background: var(--c-green-2); }
+.sn .sn-menu a.sn-cta.on { box-shadow: 0 0 0 2px var(--c-cream), 0 0 0 4px var(--c-gold); }
 .sn a:focus-visible, .sn button:focus-visible, .sf a:focus-visible { outline: 3px solid var(--c-gold); outline-offset: 3px; border-radius: 6px; }
 .sn-burger { display: none; background: none; border: 1px solid var(--c-line); border-radius: 8px; width: 44px; height: 44px; padding: 0; cursor: pointer; place-items: center; }
 .sn-bars, .sn-bars::before, .sn-bars::after { display: block; width: 20px; height: 2px; background: var(--c-green); content: ""; position: relative; }

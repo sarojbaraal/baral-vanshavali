@@ -5,8 +5,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 
-export type NavKey = "home" | "lineage" | "history" | "branches" | "contact";
-type AppTab = "tree" | "fam";
+export type NavKey = "home" | "lineage" | "history" | "branches" | "contact" | "account" | "none";
+type AppTab = "tree" | "fam" | "mine";
 
 const ITEMS: { k: NavKey; l: string; href: string; tab?: AppTab }[] = [
   { k: "home", l: "गृहपृष्ठ", href: "/" },
@@ -82,7 +82,18 @@ export default function SiteNav({ active, signedIn, onTab }: { active: NavKey; s
               {it.l}
             </Link>
           ))}
-          <Link className="sn-cta" href="/app" onClick={() => setOpen(false)}>
+          <Link
+            className={`sn-cta${active === "account" ? " on" : ""}`}
+            href={inKnown ? "/app?tab=mine" : "/app"}
+            aria-current={active === "account" ? "page" : undefined}
+            onClick={(e) => {
+              setOpen(false);
+              if (inKnown && onTab) {
+                e.preventDefault();
+                onTab("mine");
+              }
+            }}
+          >
             {inKnown ? "मेरो खाता" : "लगइन / दर्ता"}
           </Link>
         </nav>
