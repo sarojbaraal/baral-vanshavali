@@ -105,7 +105,12 @@ export function VanshProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<VProfile | null>(null);
   const [act, setActState] = useState<Role | null>(null);
   const [people, setPeople] = useState<VPerson[]>([]);
-  const [tab, setTabState] = useState<TabKey>(tabFromUrl);
+  // the server render has no URL, so start on the default and read ?tab= after hydration (otherwise the nav's active state stays stale)
+  const [tab, setTabState] = useState<TabKey>("fam");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTabState(tabFromUrl());
+  }, []);
   const [sel, setSel] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState("");
   const [dialog, setDialog] = useState<DialogState | null>(null);

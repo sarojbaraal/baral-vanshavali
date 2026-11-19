@@ -20,27 +20,6 @@ import { useDailyEvents, useTodayLabel } from "./HeroAi";
 
 const APP_VER = process.env.NEXT_PUBLIC_APP_VER || "dev";
 
-function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  useEffect(() => {
-    const mq = matchMedia("(prefers-color-scheme: dark)");
-    const cur = () => (document.documentElement.dataset.theme as "light" | "dark") || (mq.matches ? "dark" : "light");
-    setTheme(cur());
-    const h = () => setTheme(cur());
-    mq.addEventListener?.("change", h);
-    return () => mq.removeEventListener?.("change", h);
-  }, []);
-  const toggle = () => {
-    const n = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = n;
-    try {
-      localStorage.setItem("vv_theme", n);
-    } catch {}
-    setTheme(n);
-  };
-  return { theme, toggle };
-}
-
 function InstallButton() {
   const [ev, setEv] = useState<Event & { prompt?: () => void } | null>(null);
   useEffect(() => {
@@ -67,18 +46,22 @@ function InstallButton() {
 
 function Shell() {
   const { db, phase, me, act, roles, setAct, tab, setTab, sel, perms, treeApi, people, openDialog, online, outbox, syncNow, discardOutbox, previewAs, setPreviewAs, g } = useVansh();
-  const { theme, toggle } = useTheme();
   const [wide, setWide] = useState(true);
   const [hdrH, setHdrH] = useState(72);
 
   useEffect(() => {
     const f = () => {
       setWide(innerWidth > 640);
-      setHdrH((document.querySelector("header")?.offsetHeight || 60) + 22);
+      const r = document.querySelector(".appbar")?.getBoundingClientRect();
+      setHdrH(Math.max(0, Math.round(r?.bottom ?? 52)) + 6);
     };
     f();
     addEventListener("resize", f);
-    return () => removeEventListener("resize", f);
+    addEventListener("scroll", f, { passive: true });
+    return () => {
+      removeEventListener("resize", f);
+      removeEventListener("scroll", f);
+    };
   }, [phase]);
 
   // "मुख्य डाउनलोड मेनुमा जाने" (शाखा प्रिन्ट) works from any tab
@@ -115,12 +98,10 @@ function Shell() {
     return () => document.body.classList.remove("det-open");
   }, [pushed]);
 
+  // "हाम्रो वंश", "परिवार शाखाहरु" and "मेरो खाता" live in the shared top navigation; only the extra views are here
   const tabs: [TabKey, string][] = [
-    ["fam", "🏡 परिवार"],
-    ["tree", "🌳 चार्ट"],
-    ["mem", "👥 सदस्य"],
-    ["mine", "📋 अनुरोध"],
-    ...(perms.isStaff ? ([["admin", "⚙ एडमिन"]] as [TabKey, string][]) : []),
+    ["mem", "सदस्य"],
+    ...(perms.isStaff ? ([["admin", "एडमिन"]] as [TabKey, string][]) : []),
   ];
 
   const dispName = (me?.position_person_id && people.find((p) => p.id === me.position_person_id)?.name) || me?.full_name || me?.email || "";
@@ -167,14 +148,12 @@ function Shell() {
   return (
     <>
       <SiteNav
-        active={eff === "tree" ? "lineage" : "branches"}
+        active={eff === "tree" ? "lineage" : eff === "fam" || eff === "ov" ? "branches" : eff === "mine" ? "account" : "none"}
         signedIn={inApp}
         onTab={inApp ? (t) => setTab(t) : undefined}
       />
-      <div className="bgfx" aria-hidden="true">
-        <i /><i /><i /><i />
-      </div>
-      <header>
+      {(inApp || showWho) && (
+      <div className="appbar">
         <nav id="tabs" aria-label="मुख्य मेनु">
           {inApp &&
             tabs.map(([k, l]) => (
@@ -203,13 +182,11 @@ function Shell() {
             </>
           )}
         </div>
-        <button className="ghost" id="tm" aria-label="डार्क/लाइट मोड" title={theme === "dark" ? "लाइट मोड" : "डार्क मोड"} onClick={toggle}>
-          {theme === "dark" ? "☀️" : "🌙"}
-        </button>
         <span id="ver" tabIndex={0} aria-label="संस्करण" data-t={`आज ${todayTxt}${perms.isAdm ? ` · Build: ${APP_VER}` : ` · ${APP_VER}`}`}>
           ⓘ
         </span>
-      </header>
+      </div>
+      )}
       {inApp && (!online || outbox.length > 0) && (
         <div className="offb" role="status">
           {!online && <div>📴 इन्टरनेट छैन — पछिल्लो सुरक्षित डाटा देखाइँदैछ। हेर्ने, खोज्ने, थप्ने र सच्याउने सबै चल्छ; परिवर्तन इन्टरनेट आएपछि आफैँ सर्भरमा जान्छ।</div>}
