@@ -8,6 +8,9 @@ export interface Lineage {
   svg: string;
   width: number;
   height: number;
+  /** how many siblings / children were left out by maxSibs / maxKids */
+  moreSibs?: number;
+  moreKids?: number;
 }
 
 export interface LineageOpts {
@@ -19,6 +22,9 @@ export interface LineageOpts {
   maternal?: boolean;
   /** hide the small relation line under each name (mini tree) */
   noLabels?: boolean;
+  /** draw at most this many siblings / children (a small tree for the home hero) */
+  maxSibs?: number;
+  maxKids?: number;
   /** name used for locked people */
   nm?: (p: VPerson) => string;
 }
@@ -61,7 +67,8 @@ export function lineageSvg(g: Graph, p: VPerson, o: LineageOpts = {}): Lineage {
   const maternal = o.maternal !== false;
 
   // ---- row 2: siblings + the person + spouses (centred on 0)
-  const sibs = g.sibsOf(p).filter((s) => s.id !== p.id);
+  const sibsAll = g.sibsOf(p).filter((s) => s.id !== p.id).sort(g.byBirth);
+  const sibs = o.maxSibs === undefined ? sibsAll : sibsAll.slice(0, o.maxSibs);
   const all = [...sibs, p].sort(g.byBirth);
   const spouses = g.spousesOf(p).map((id) => byId[id]).filter(Boolean) as VPerson[];
   const items: { p: VPerson; label: string; focus?: boolean; spouseOf?: boolean }[] = [];
@@ -103,7 +110,8 @@ export function lineageSvg(g: Graph, p: VPerson, o: LineageOpts = {}): Lineage {
   if (maternal) pair(mother, mx, ["आमाका पिता", "आमाकी आमा"]);
 
   // ---- row 3: children
-  const kids = o.kids === false ? [] : g.kidsOf(p).slice().sort(g.byBirth);
+  const kidsAll = o.kids === false ? [] : g.kidsOf(p).slice().sort(g.byBirth);
+  const kids = o.maxKids === undefined ? kidsAll : kidsAll.slice(0, o.maxKids);
   if (kids.length) {
     const mid = mySpouses.length ? (me.cx + mySpouses[mySpouses.length - 1].cx) / 2 : me.cx;
     kids.forEach((k, i) => nodes.push({ p: k, cx: mid - (kids.length * U) / 2 + U / 2 + i * U, row: 3, label: label(byGender("छोरा", "छोरी", k)) }));
@@ -191,5 +199,5 @@ export function lineageSvg(g: Graph, p: VPerson, o: LineageOpts = {}): Lineage {
   });
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${esc(nm(p))} को वंशवृक्ष"><defs>${defs}</defs>${lines}${cards}</svg>`;
-  return { svg, width, height };
+  return { svg, width, height, moreSibs: sibsAll.length - sibs.length, moreKids: kidsAll.length - kids.length };
 }
