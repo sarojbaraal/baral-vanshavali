@@ -73,6 +73,7 @@ export interface VProfile {
   phone?: string | null;
   location?: string | null;
   suspended_at?: string | null;
+  email_reminders?: boolean | null;
   custom_anchor?: { target_id: string; relation_type: string } | null;
 }
 
