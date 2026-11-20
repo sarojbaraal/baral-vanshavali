@@ -2,6 +2,7 @@
 // Ported from the original app.js (build / measure / rowOf / place / draw).
 import type { VPerson } from "./types";
 import type { Graph } from "./graph";
+import { surnameOf } from "./text";
 
 export const CW = 176;
 export const CH = 72;
@@ -18,6 +19,8 @@ export const DEFAULT_DIMS: Dims = { cw: CW, ch: CH, gap: GAP, hg: HG, vg: VG };
 export const POSTER_DIMS: Dims = { cw: 158, ch: 60, gap: 24, hg: 14, vg: 46, heart: true };
 let D: Dims = DEFAULT_DIMS;
 let HEARTS: { x: number; y: number }[] = [];
+// women who married into the Baral line: they belong to their husband's tree, not to their birth family's
+let AWAY: Set<string> = new Set();
 
 export interface TreeNode {
   p: VPerson;
@@ -77,7 +80,7 @@ function buildNode(g: Graph, p: VPerson, seen: Set<string>, d: number): TreeNode
   const all: TreeNode[] = [];
   groups.forEach((gr) =>
     gr.ks.forEach((k) => {
-      if (!seen.has(k.id)) {
+      if (!seen.has(k.id) && !AWAY.has(k.id)) {
         const c = buildNode(g, k, seen, d + 1);
         c.from = gr.from;
         all.push(c);
@@ -166,14 +169,34 @@ function place(n: TreeNode, x: number, y: number, cards: Card[], lines: Line[], 
   return y + D.ch;
 }
 
+/**
+ * A woman born into another family who married a बराल man with known parents is drawn beside her husband, with their
+ * children. Otherwise whichever tree is built first would claim the couple, and with masked birth dates for some roles
+ * that was the wife's family (मावाली) tree.
+ */
+export function marriedAway(g: Graph): Set<string> {
+  const out = new Set<string>();
+  g.people.forEach((p) => {
+    if (p.gender !== "F" || !g.hasParents(p) || !p.spouse_id || p.more_spouse_ids?.length) return;
+    const h = g.byId[p.spouse_id];
+    if (!h || h.gender === "F" || !g.hasParents(h) || surnameOf(h.name) !== "बराल") return;
+    const fa = p.father_id ? g.byId[p.father_id] : undefined;
+    if (fa && surnameOf(fa.name) === "बराल") return; // a Baral daughter stays in the Baral tree
+    out.add(p.id);
+  });
+  return out;
+}
+
 function buildTrees(g: Graph): TreeNode[] {
   const seen = new Set<string>();
   const { people, hasParents, isMarriedIn, byBirth } = g;
+  AWAY = marriedAway(g);
   const trees = people
     .filter((p) => !hasParents(p) && !isMarriedIn(p))
     .sort(byBirth)
     .map((p) => buildNode(g, p, seen, 0));
   people.filter((p) => !seen.has(p.id)).forEach((p) => trees.push(buildNode(g, p, seen, 0)));
+  AWAY = new Set();
   return trees;
 }
 
