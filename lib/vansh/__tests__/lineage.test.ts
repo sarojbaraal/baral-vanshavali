@@ -33,4 +33,14 @@ describe("lineageSvg", () => {
     expect(svg).not.toContain("<b>");
     expect(svg).toContain("&lt;b&gt;");
   });
+
+  it("can limit siblings and children for a small tree", () => {
+    const hari = g.byId["hari"];
+    const full = lineageSvg(g, hari, {});
+    const small = lineageSvg(g, hari, { maxSibs: 0, maxKids: 1, noLabels: true });
+    expect(full.moreSibs).toBe(0);
+    expect(small.moreSibs).toBe(1);
+    expect(small.moreKids).toBe(2);
+    expect(small.svg.length).toBeLessThan(full.svg.length);
+  });
 });

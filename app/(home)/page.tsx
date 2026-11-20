@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
+import MemberHero from "@/components/site/MemberHero";
 import { tornPath } from "./torn";
 
 // Four promises under the hero. Wording sticks to what the site really does.
@@ -61,6 +62,7 @@ export default function HomePage() {
   return (
     <PageShell active="home">
       <section className="hero" aria-labelledby="hero-h">
+        <MemberHero>
         <div className="hero-in">
           <div className="hero-copy">
             <p className="orn">
@@ -95,6 +97,7 @@ export default function HomePage() {
             <span className="ai-badge">AI ले बनाएको चित्र</span>
           </figure>
         </div>
+        </MemberHero>
         <div className="band" aria-label="यो साइटका चार आधार">
           <svg className="torn" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true">
             <path d={tornPath(1440, 80, 40, 18, 16, 11)} fill="#313d24" opacity=".35" transform="translate(0 -5)" />

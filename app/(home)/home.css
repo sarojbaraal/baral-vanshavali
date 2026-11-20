@@ -206,3 +206,23 @@ body { margin: 0; background: #f5f0e6; }
 .cf-done h3 { margin-top: 0; }
 @media (max-width: 860px) { .cgrid, .cf-row { grid-template-columns: 1fr; } }
 .cside .mailbig { font-size: clamp(1.05rem, 2vw, 1.3rem); overflow-wrap: anywhere; }
+
+/* ---------- member hero: their own small tree on a framed sheet ---------- */
+.mh { align-items: center; padding-bottom: clamp(2.4rem, 6vw, 5rem); grid-template-columns: minmax(0, 1fr) minmax(0, .8fr); }
+.hero-tree { max-width: 520px; justify-self: center; width: 100%; }
+.mh .hero-copy { padding-bottom: 0; }
+.mh h1 { font-size: clamp(2.6rem, 7vw, 5rem); }
+.mh-line { font: 500 1.05rem/1.6 var(--c-serif); color: var(--c-gold-ink); margin: 0 0 1rem; }
+.mh-facts { list-style: none; margin: 0 0 1.1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem .6rem; }
+.mh-facts li { padding: .25rem .9rem; border: 1px solid var(--c-gold-2); border-radius: 999px; background: rgba(251, 248, 241, .7); font-size: .92rem; color: var(--c-ink); }
+.mh-facts b { font: 700 1.1rem var(--c-serif); color: var(--c-green); }
+.mh-note { margin: 0 0 1.2rem; padding: .5rem .9rem; border-left: 3px solid var(--c-gold); background: rgba(181, 138, 66, .1); border-radius: 0 8px 8px 0; font-size: .96rem; }
+.hero-tree { margin: 0; min-width: 0; }
+.ht-sheet { position: relative; padding: clamp(.8rem, 2vw, 1.4rem); border-radius: 6px; background:
+  radial-gradient(ellipse at 50% 0%, rgba(255, 253, 248, .9), transparent 70%),
+  linear-gradient(160deg, #fbf8f1, #efe6d2);
+  box-shadow: 0 0 0 1px rgba(181, 138, 66, .55), 0 0 0 7px #f5f0e6, 0 0 0 8px rgba(181, 138, 66, .45), 0 18px 40px -14px rgba(49, 61, 36, .35); }
+.ht-sheet::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgba(181, 138, 66, .35); border-radius: 3px; pointer-events: none; }
+.ht-sheet svg { display: block; width: 100%; max-width: 430px; height: auto; margin: 0 auto; }
+.hero-tree figcaption { margin-top: 1.1rem; display: flex; justify-content: space-between; gap: .8rem; flex-wrap: wrap; font-size: .88rem; color: var(--c-mut); }
+@media (max-width: 900px) { .mh { grid-template-columns: minmax(0, 1fr); padding-bottom: 3rem; gap: 2rem; } .hero-tree { max-width: 440px; } }
