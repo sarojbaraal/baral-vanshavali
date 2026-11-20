@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { VPerson } from "@/lib/vansh/types";
 import { useVansh } from "./VanshContext";
+import { mailMessage } from "@/lib/vansh/notify";
 
 type Level = "all" | "near" | "me";
 const FIELDS: { k: "phone" | "birth_bs" | "address" | "photo_url"; l: string }[] = [
@@ -78,7 +79,7 @@ export function ReportDialog() {
   const send = async () => {
     if (body.trim().length < 5) return setErr("समस्या केही शब्दमा लेख्नुहोस्।");
     setBusy(true);
-    const { error } = await db.rpc("submit_message", {
+    const { data, error } = await db.rpc("submit_message", {
       p_kind: "problem",
       p_name: me?.full_name || "",
       p_email: me?.email || "",
@@ -90,6 +91,7 @@ export function ReportDialog() {
     });
     setBusy(false);
     if (error) return setErr(error.message);
+    mailMessage(db, data);
     toast("✅ रिपोर्ट पठाइयो, धन्यवाद");
     closeDialog();
   };

@@ -2,6 +2,7 @@
 // Public contact form: the message is stored in Supabase (site_messages) and read by admins inside the app.
 import React, { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { mailMessage } from "@/lib/vansh/notify";
 
 const TOPICS = ["सामान्य जिज्ञासा", "आफ्नो परिवार वंशावलीमा जोड्न", "विवरण सच्याउन", "इतिहास वा स्रोतबारे", "कागज, फोटो वा कृति पठाउन", "अन्य"];
 
@@ -19,7 +20,8 @@ export default function ContactForm() {
     e.preventDefault();
     setErr("");
     setState("busy");
-    const { error } = await createClient().rpc("submit_message", {
+    const db = createClient();
+    const { data, error } = await db.rpc("submit_message", {
       p_kind: "contact",
       p_name: f.name,
       p_email: f.email,
@@ -32,7 +34,10 @@ export default function ContactForm() {
     if (error) {
       setErr(error.message);
       setState("idle");
-    } else setState("done");
+    } else {
+      mailMessage(db, data);
+      setState("done");
+    }
   };
 
   if (state === "done")
