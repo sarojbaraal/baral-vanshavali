@@ -5,7 +5,7 @@ import { BranchPrintDialog } from "./PersonDialogs";
 import { chartGoto } from "@/lib/vansh/chartGoto";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  CH, CW, GEN, compactCollapsed, computeLayout, initialCollapsed, openUp,
+  CH, CW, GEN, SCREEN_DIMS, compactCollapsed, computeLayout, initialCollapsed, myBranchCollapsed, openUp,
 } from "@/lib/vansh/layout";
 import { dispName, match, np, yr } from "@/lib/vansh/text";
 import { relMap } from "@/lib/vansh/relations";
@@ -34,7 +34,8 @@ export default function TreeView() {
   const [collapsed, setCollapsedState] = useState<Set<string>>(() => {
     if (!store.init && people.length) {
       store.init = true;
-      store.collapsed = initialCollapsed(g);
+      // a member with a place starts on their own branch; everyone else on the usual overview
+      store.collapsed = myPosId && byId[myPosId] ? myBranchCollapsed(g, myPosId) : initialCollapsed(g);
     }
     return store.collapsed;
   });
@@ -43,14 +44,23 @@ export default function TreeView() {
     setCollapsedState(s);
   }, []);
 
-  const layout = useMemo(() => computeLayout(g, collapsed), [g, collapsed]);
+  const layout = useMemo(() => computeLayout(g, collapsed, SCREEN_DIMS), [g, collapsed]);
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
 
+  const [mode, setMode] = useState<"mine" | "all">(myPosId && byId[myPosId] ? "mine" : "all");
   const [hlId, setHlId] = useState<string | null>(null);
   const hlRef = useRef<string | null>(null);
   hlRef.current = hlId;
   const hl = useMemo(() => (hlId ? g.branchOf([hlId]) : null), [g, hlId]);
+  // the road from the oldest ancestor down to the viewer stays lit
+  const road = useMemo(() => {
+    if (!myPosId || !byId[myPosId]) return null;
+    const s = new Set(Object.keys(g.ancUp(myPosId)));
+    s.add(myPosId);
+    return s;
+  }, [g, myPosId, byId]);
+  const rows = useMemo(() => [...new Set(layout.cards.map((c) => c.d))].sort((a, b) => a - b), [layout]);
   const [q, setQ] = useState(qText.tree);
 
   const chartRef = useRef<HTMLDivElement>(null);
@@ -399,10 +409,14 @@ export default function TreeView() {
         >
           ⛶
         </button>
-        <button className="ghost" title="सबै शाखा खोल्ने" onClick={() => { setCollapsed(new Set()); afterDraw.current = fit; }}>
-          सबै शाखा खोल्ने
-        </button>
-        <button className="ghost" title="शाखा बन्द गर्ने" onClick={compact}>संक्षिप्त</button>
+        <span className="seg sm" role="group" aria-label="वृक्षको दृश्य">
+          <button className={mode === "mine" ? "on" : ""} aria-pressed={mode === "mine"} disabled={!road} title={road ? "आफ्नो शाखा मात्र खोलेर बाँकी बन्द" : "आफ्नो स्थान तोकेपछि"} onClick={() => { setMode("mine"); compact(); }}>
+            🌿 मेरो शाखा
+          </button>
+          <button className={mode === "all" ? "on" : ""} aria-pressed={mode === "all"} onClick={() => { setMode("all"); setCollapsed(new Set()); afterDraw.current = fit; }}>
+            🌳 पूरा रुख
+          </button>
+        </span>
         <button className="ghost" title="आफ्नो स्थान / नाता सन्दर्भ तोक्ने" onClick={() => openDialog(<AnchorDialog />)}>🧭 नाता सन्दर्भ</button>
         <DownloadMenu />
       </div>
@@ -412,8 +426,17 @@ export default function TreeView() {
       }}>
         <div id="stage" ref={stageRef} style={{ width: layout.W, height: layout.H }}>
           <svg width={layout.W} height={layout.H}>
+            {rows.map((d) => {
+              const y = d * (CH + layout.dims.vg);
+              return (
+                <g key={d} className={d % 2 ? "band odd" : "band"}>
+                  <rect x={-4000} y={y - layout.dims.vg / 2 + 6} width={layout.W + 8000} height={CH + layout.dims.vg} />
+                  <text x={6} y={y - 8}>{np(d + 1)} औँ पुस्ता</text>
+                </g>
+              );
+            })}
             {layout.lines.map((l, i) => (
-              <path key={i} className={"ln" + (hl ? (hl.has(l.c) ? " on" : " dim") : "")} data-c={l.c} data-m={l.m ? 1 : undefined} d={l.d} />
+              <path key={i} className={"ln" + (hl ? (hl.has(l.c) ? " on" : " dim") : road?.has(l.c) ? " path" : "")} data-c={l.c} data-m={l.m ? 1 : undefined} d={l.d} />
             ))}
           </svg>
           {layout.cards.map(({ p, x, y, d }) => {

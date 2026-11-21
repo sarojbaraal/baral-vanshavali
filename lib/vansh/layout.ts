@@ -11,11 +11,14 @@ export const HG = 26;
 export const VG = 64;
 export const GEN = ["#E4572E", "#F3A712", "#29A19C", "#3A7CA5", "#7B5EA7", "#D1477A", "#5B8C5A", "#C17C3B"];
 
-export interface Dims { cw: number; ch: number; gap: number; hg: number; vg: number; heart?: boolean; /** children without descendants hang in a vertical column when a parent has at least this many */ stack?: number; /** everything below a hanging node hangs too (outline style) */ deep?: boolean }
+export interface Dims { cw: number; ch: number; gap: number; hg: number; vg: number; heart?: boolean; /** parent→child branches are drawn as soft Bézier curves instead of right-angled brackets */ curve?: boolean; /** children without descendants hang in a vertical column when a parent has at least this many */ stack?: number; /** everything below a hanging node hangs too (outline style) */ deep?: boolean }
 const STK = 22; // indent of a hanging column
 const SG = 26; // gap between hanging cards
 export const DEFAULT_DIMS: Dims = { cw: CW, ch: CH, gap: GAP, hg: HG, vg: VG };
 /** Smaller cards and a gap wide enough for a heart between spouses: used by the printable poster. */
+/** the on-screen chart: same grid, curved branches */
+export const SCREEN_DIMS: Dims = { ...DEFAULT_DIMS, curve: true };
+
 export const POSTER_DIMS: Dims = { cw: 158, ch: 60, gap: 24, hg: 14, vg: 46, heart: true };
 let D: Dims = DEFAULT_DIMS;
 let HEARTS: { x: number; y: number }[] = [];
@@ -163,7 +166,13 @@ function place(n: TreeNode, x: number, y: number, cards: Card[], lines: Line[], 
     const y0 = D.heart && n.sps.length === 1 && fx === px ? y + D.ch / 2 : y + D.ch; // poster: the child bracket hangs from the heart
     const gi = multi ? (c.from ? n.sps.findIndex((s) => s.id === c.from) : n.sps.length) : 0;
     const by = multi ? y + D.ch + 10 + gi * step : y + D.ch + D.vg / 2;
-    lines.push({ d: `M${fx} ${y0}V${by}H${c.ax}V${y + D.ch + D.vg}`, c: c.p.id });
+    const yt = y + D.ch + D.vg;
+    lines.push({
+      d: D.curve
+        ? `M${fx} ${y0}C${fx} ${y0 + (yt - y0) * 0.58},${c.ax} ${yt - (yt - y0) * 0.58},${c.ax} ${yt}`
+        : `M${fx} ${y0}V${by}H${c.ax}V${yt}`,
+      c: c.p.id,
+    });
     cur += c.tw + D.hg;
   });
   return y + D.ch;
@@ -229,6 +238,11 @@ export function computeLayout(g: Graph, collapsed: Set<string>, dims: Dims = DEF
   const out = { cards, lines, units, trees, W, H, cardPos: Object.fromEntries(cards.map((c) => [c.p.id, c])), hearts: HEARTS, dims };
   D = DEFAULT_DIMS;
   return out;
+}
+
+/** First view for a member with a place in the tree: their own branch open (ancestors, siblings, descendants), the rest folded. */
+export function myBranchCollapsed(g: Graph, id: string): Set<string> {
+  return openUp(g, compactCollapsed({ trees: buildTrees(g) } as Layout, g.branchOf([id])), id);
 }
 
 /** "संक्षिप्त": keep the user's own branch open and fold the rest. */
