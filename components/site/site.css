@@ -50,6 +50,13 @@
 .sn .sn-pop button.out { color: #b3261e; }
 .sn .sn-pop button.out svg { color: #b3261e; }
 .sn-pop hr { border: 0; border-top: 1px solid var(--c-line); margin: .3rem 0; }
+.sn .sn-pop a.sn-mi { display: flex; align-items: center; gap: .7rem; min-height: 42px; padding: .4rem .7rem; border-radius: 9px; color: var(--c-ink); text-decoration: none; font-size: .98rem; border-bottom: 0; }
+.sn .sn-pop a.sn-mi svg { color: var(--c-gold); flex: none; }
+.sn .sn-pop a.sn-mi:hover, .sn .sn-pop a.sn-mi:focus-visible { background: rgba(49, 61, 36, .08); }
+.sn .sn-add { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: .3rem 1.05rem .3rem .8rem; border-radius: 999px; border: 1.5px solid var(--c-green); background: var(--c-green); color: #fff; font: 600 .96rem var(--c-serif); cursor: pointer; white-space: nowrap; }
+.sn .sn-add:hover { background: var(--c-green-2); border-color: var(--c-green-2); }
+.sn .sn-add svg { color: var(--c-gold-2); }
+@media (max-width: 560px) { .sn .sn-add { width: 44px; padding: 0; justify-content: center; } .sn .sn-add span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 .sn-ver { display: block; padding: .4rem .7rem 0; font-size: .75rem; color: var(--c-mut); }
 
 @media (max-width: 1240px) { .sn-brand small { display: none; } }

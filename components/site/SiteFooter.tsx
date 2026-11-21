@@ -17,8 +17,8 @@ export default function SiteFooter() {
         </div>
         <nav aria-label="फुटर मेनु" className="sf-links">
           <Link href="/history">इतिहास</Link>
-          <Link href="/app?tab=tree">हाम्रो वंश</Link>
-          <Link href="/app?tab=fam">परिवार शाखाहरु</Link>
+          <Link href="/app?tab=tree">वंशवृक्ष</Link>
+          <Link href="/app?tab=fam">सदस्य</Link>
           <Link href="/contact">सम्पर्क</Link>
         </nav>
         <p className="sf-mail">

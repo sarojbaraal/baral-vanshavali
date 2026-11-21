@@ -1,5 +1,5 @@
 "use client";
-// "Family Overview" (staff only): donut / bar statistics. Ported from the original app.js ovView().
+// "पारिवारिक तथ्यांक" — विस्तृत (staff only): donut / bar statistics. Ported from the original app.js ovView().
 import React, { useMemo, useState } from "react";
 import type { Graph } from "@/lib/vansh/graph";
 import { myPos } from "@/lib/vansh/graph";
@@ -143,10 +143,10 @@ export default function OverviewView() {
   return (
     <>
       <div className="row" style={{ margin: "0 0 1rem" }}>
-        <button className="ghost" onClick={() => setTab("fam")}>← परिवार</button>
+        <button className="ghost" onClick={() => setTab("fam")}>← सदस्य</button>
       </div>
       <h2>
-        📊 Family Overview <small className="mut">{np(pool.length)} सदस्य · कुनै भागमा क्लिक गर्नुहोस्</small>
+        📊 पारिवारिक तथ्यांक <small className="mut">{np(pool.length)} सदस्य · कुनै भागमा क्लिक गर्नुहोस्</small>
       </h2>
       {list && (
         <div className="card hscroll" id="ovlist">

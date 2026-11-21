@@ -13,7 +13,8 @@ import type { VPerson } from "@/lib/vansh/types";
 import { useVansh } from "./VanshContext";
 import { Avatar } from "./ui";
 import PersonSearch from "./PersonSearch";
-import { PersonForm } from "./PersonDialogs";
+import { AnchorDialog, PersonForm } from "./PersonDialogs";
+import DownloadMenu from "./DownloadMenu";
 import { qText } from "./ListViews";
 
 // folded branches survive tab switches (like the original's module-level state)
@@ -402,6 +403,8 @@ export default function TreeView() {
           सबै शाखा खोल्ने
         </button>
         <button className="ghost" title="शाखा बन्द गर्ने" onClick={compact}>संक्षिप्त</button>
+        <button className="ghost" title="आफ्नो स्थान / नाता सन्दर्भ तोक्ने" onClick={() => openDialog(<AnchorDialog />)}>🧭 नाता सन्दर्भ</button>
+        <DownloadMenu />
       </div>
       <div id="chart" ref={chartRef} onPointerDown={onChartDown} onClick={onChartClick} onKeyDown={(e) => {
         const id = (e.target as HTMLElement).dataset?.id;

@@ -927,3 +927,16 @@ a.abtn:hover { color: var(--cy); border-color: var(--cy); }
 /* checkbox row inside dialogs */
 .dlg label.chk, label.chk { display: flex; gap: .6rem; align-items: flex-start; margin: .8rem 0; font-weight: 500; }
 label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: .2rem; flex: none; accent-color: #44563a; }
+
+/* "सदस्य" view switch and the profile's family cards */
+.seg { display: inline-flex; gap: 2px; padding: 3px; margin: 0 0 1rem; border-radius: 999px; background: rgba(181, 138, 66, .16); border: 1px solid rgba(181, 138, 66, .4); max-width: 100%; flex-wrap: wrap; }
+.seg button { border: 0; border-radius: 999px; padding: .45rem 1.1rem; background: transparent; color: inherit; font: inherit; font-size: .95rem; cursor: pointer; box-shadow: none; }
+.seg button.on { background: #313d24; color: #fff; }
+.kin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: .7rem; margin-top: .8rem; }
+.kin { display: grid; justify-items: center; gap: .2rem; padding: .8rem .5rem; border-radius: 16px; border: 1px solid rgba(181, 138, 66, .45); background: linear-gradient(170deg, rgba(217, 179, 106, .16), rgba(217, 179, 106, .03)); color: inherit; cursor: pointer; text-align: center; font: inherit; box-shadow: none; }
+.kin:hover { border-color: #b58a42; background: rgba(217, 179, 106, .24); }
+.kin-av { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 2px solid #d9b36a; background: #44563a; display: block; }
+.kin-av img, .kin-av svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.kin b { font-size: .95rem; line-height: 1.35; }
+.kin small { color: var(--mut); }
+.kin.dead .kin-av { filter: grayscale(.5); }

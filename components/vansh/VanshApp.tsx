@@ -9,7 +9,7 @@ import type { Role, TabKey } from "@/lib/vansh/types";
 import { VanshProvider, useVansh } from "./VanshContext";
 import { Avatar, DialogHost, Toast } from "./ui";
 import { AuthView, PendingView, PosView, ResetView } from "./AuthViews";
-import { FamView, MemView } from "./ListViews";
+import { MembersView } from "./ListViews";
 import SiteNav, { type AccountAction, type AccountInfo } from "@/components/site/SiteNav";
 import TreeView from "./TreeView";
 import DetailPanel from "./DetailPanel";
@@ -169,9 +169,9 @@ function Shell() {
   else if (phase === "pending") body = <PendingView />;
   else if (inApp)
     body = {
-      fam: <FamView />,
+      fam: <MembersView />,
       tree: <TreeView />,
-      mem: <MemView />,
+      mem: <MembersView />,
       me: <ProfileView />,
       mine: <ProfileView />,
       admin: <AdminView />,
@@ -182,8 +182,8 @@ function Shell() {
     <>
       <SiteNav
         active={
-          eff === "tree" ? "lineage" : eff === "fam" || eff === "ov" ? "branches" : eff === "me" || eff === "mine" ? "profile"
-          : eff === "mem" ? "members" : eff === "admin" ? "admin" : "none"
+          eff === "tree" ? "lineage" : eff === "fam" || eff === "mem" ? "members" : eff === "me" || eff === "mine" ? "profile"
+          : eff === "admin" ? "admin" : "none"
         }
         account={account}
         onTab={inApp ? (t) => setTab(t) : undefined}

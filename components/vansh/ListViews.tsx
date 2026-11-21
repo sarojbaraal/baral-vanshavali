@@ -1,24 +1,21 @@
 "use client";
-// "परिवार" (family) and "सदस्य" (members) tabs — ported from the original app.js famView / memView.
+// "सदस्य": one page with two views of the same people — grouped by family (समूह) and a filterable list (सूची).
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { famGroups, relMap } from "@/lib/vansh/relations";
-import { ROLE_L, type Graph } from "@/lib/vansh/graph";
+import { type Graph } from "@/lib/vansh/graph";
 import { ageN, dispName, match, np, surnameOf, yr } from "@/lib/vansh/text";  
 import type { VPerson } from "@/lib/vansh/types";
 import { useVansh } from "./VanshContext";
 import { Avatar, KidCount } from "./ui";
 import PersonSearch from "./PersonSearch";
-import { AnchorDialog, PersonForm } from "./PersonDialogs";
-import DownloadMenu from "./DownloadMenu";
-import { EventChips, StoryCard } from "./HeroAi";
 
 // search text survives tab switches, like the original
 export const qText = { tree: "", fam: "" };
 
 export function FamView() {
-  const { g, me, act, perms, access, people, pick, setTab, openDialog, myPosId } = useVansh();
-  const { byId, kidsOf, byBirth } = g;
-  const { can, isAdm, isStaff } = perms;
+  const { g, me, perms, people, pick } = useVansh();
+  const { byId, kidsOf } = g;
+  const { can } = perms;
   const [mode, setMode] = useState<"grid" | "list">("grid");
   const [open, setOpen] = useState<Set<number>>(new Set([0]));
   const [q, setQ] = useState(qText.fam);
@@ -30,13 +27,6 @@ export function FamView() {
   const base = me?.position_person_id ? byId[me.position_person_id] : me?.position_parent_id ? byId[me.position_parent_id] : undefined;
   const has = !!(base || (me?.position_grand_id && byId[me.position_grand_id]));
   const groups = useMemo(() => (me ? famGroups(g, me, perms, R) : []), [g, me, perms, R]);
-  const ic = has ? groups[0]?.members.length || 0 : 0;
-  const msg = !access.acc
-    ? "सबै वंशावली तपाईंको लागि खुला छ।"
-    : base
-    ? "तपाईंको भूमिकाअनुसार खुला भएको वंश मात्र देखिन्छ। बाँकी शाखा चार्टमा धमिला र लक छन्।"
-    : "तपाईंको स्थान अझै तोकिएको छैन। एडमिनले तोकेपछि शाखा खुल्नेछ।";
-  const meName = (me?.position_person_id && byId[me.position_person_id]?.name) || me?.full_name || me?.email || "";
 
   const ql = q.trim().toLowerCase();
   const visiblePeople = useMemo(() => people.filter((p) => can(p.id)), [people, can]);
@@ -94,30 +84,6 @@ export function FamView() {
 
   return (
     <>
-      <section className="hero2">
-        <div className="hello">
-          <span className="hchip">{act ? ROLE_L[act] : ""}</span>
-          <h2>नमस्ते, {meName}</h2>
-          <p>{msg}</p>
-          <div className="stats">
-            <span><b>{np(ic)}</b> मुख्य परिवार</span>
-            <span><b>{np(access.acc ? access.acc.size : people.length)}</b> खुला</span>
-            <span><b>{np(people.length)}</b> कुल सदस्य</span>
-          </div>
-          <EventChips onOpen={(id) => { showCard(id); pick(id); }} />
-        </div>
-        {me?.position_person_id && byId[me.position_person_id] && <StoryCard person={byId[me.position_person_id]} />}
-        <div className="row">
-          {(
-            <button className="ghost" onClick={() => openDialog(<PersonForm action="add" />, true)}>
-              {isAdm ? "+ सदस्य थप्ने" : "+ सदस्य थप्ने अनुरोध"}
-            </button>
-          )}
-          <button className="ghost" onClick={() => openDialog(<AnchorDialog />)}>🧭 नाता सन्दर्भ</button>
-          {isStaff && <button className="ghost" onClick={() => setTab("ov")}>📊 Family Overview</button>}
-          <DownloadMenu />
-        </div>
-      </section>
       <div className="stickybar">
       <button className="locate" disabled={!base} onClick={() => base && showCard(base.id)}>📍 मेरो स्थान</button>
       <PersonSearch
@@ -353,5 +319,20 @@ function DropFilter({ label, count = 0, shown, single, children }: { label: stri
         </div>
       )}
     </div>
+  );
+}
+
+/** The "सदस्य" tab: the family groups and the filterable list share one page; the switch keeps ?tab= in step so old links still work. */
+export function MembersView() {
+  const { tab, setTab } = useVansh();
+  const list = tab === "mem";
+  return (
+    <>
+      <div className="seg" role="tablist" aria-label="सदस्य हेर्ने तरिका">
+        <button role="tab" aria-selected={!list} className={list ? "" : "on"} onClick={() => setTab("fam")}>👪 परिवार समूह</button>
+        <button role="tab" aria-selected={list} className={list ? "on" : ""} onClick={() => setTab("mem")}>☰ सबै सदस्य · फिल्टर</button>
+      </div>
+      {list ? <MemView /> : <FamView />}
+    </>
   );
 }

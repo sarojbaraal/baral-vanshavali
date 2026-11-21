@@ -11,7 +11,7 @@ import { descendantsSvg } from "@/lib/vansh/descendants";
 import { lifeSheetHtml, openLifeSheet } from "@/lib/vansh/lifesheet";
 import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
-import { genNo } from "@/lib/vansh/relations";
+import { genNo, relsOf } from "@/lib/vansh/relations";
 import { ageN, np } from "@/lib/vansh/text";
 import { openDoc } from "@/lib/vansh/docs";
 import { useVansh } from "./VanshContext";
@@ -21,7 +21,7 @@ import { AnchorDialog, PersonForm } from "./PersonDialogs";
 import { useTodayLabel } from "./HeroAi";
 
 export default function ProfileView() {
-  const { db, me, g, perms, toast, reload, openDialog, setTab } = useVansh();
+  const { db, me, g, perms, toast, reload, openDialog, setTab, pick } = useVansh();
   const today = useTodayLabel();
   const p = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
   const [busy, setBusy] = useState(false);
@@ -54,6 +54,7 @@ export default function ProfileView() {
 
   const facts = profileFacts(g, p, { showEmail: true, nm: perms.nm });
   const gen = genNo(g, p.id);
+  const family = relsOf(g, p).filter((x) => perms.can(x.q.id));
   const age = ageN(p.birth_bs, p.death_bs);
   const kin = fatherLine(g, p, perms.nm);
   const baral = isBaralByBirth(g, p);
@@ -124,6 +125,7 @@ export default function ProfileView() {
           <button onClick={() => openDialog(<PersonForm action="update" p={p} />, true)}>✏ विवरण सच्याउने</button>
           <button className="ghost" onClick={print}>🖨 छाप्ने पाना</button>
           <button className="ghost" onClick={seeInTree}>🌳 वृक्षमा हेर्ने</button>
+          <button className="ghost" onClick={() => openDialog(<AnchorDialog />)}>🧭 आफ्नो स्थान</button>
         </div>
       </section>
 
@@ -186,6 +188,26 @@ export default function ProfileView() {
         </div>
         <div className="lineage" dangerouslySetInnerHTML={{ __html: chart?.svg || "" }} />
         <p className="mut">बुबा-आमाको नाम रेकर्डमा भए मात्र माथिल्ला पुस्ता देखिन्छन्। नपुगेको विवरण थप्न &ldquo;विवरण सच्याउने&rdquo; प्रयोग गर्नुहोस्।</p>
+      </section>
+
+      <section className="card">
+        <div className="prof-bar">
+          <h3>मेरो परिवार</h3>
+          <button className="ghost" onClick={() => openDialog(<PersonForm action="add" />, true)}>+ सदस्य थप्ने</button>
+        </div>
+        {family.length ? (
+          <div className="kin-grid">
+            {family.map(({ q, l }) => (
+              <button key={q.id} className={`kin g${q.gender || "O"} ${q.is_living === false ? "dead" : ""}`} onClick={() => pick(q.id)}>
+                <span className="kin-av"><Avatar g={q.gender} photo={q.photo_url} live={q.is_living} /></span>
+                <b>{perms.nm(q)}</b>
+                <small>{l}</small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="mut">बुबा-आमा, जीवनसाथी, दाजुभाइ-दिदीबहिनी वा सन्तान अहिलेसम्म जोडिएका छैनन्।</p>
+        )}
       </section>
 
       {desc && desc.count > 1 && (
