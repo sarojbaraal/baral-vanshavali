@@ -26,7 +26,8 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
     return familyEvents(d.people, { can: (id) => !d.people.find((x) => x.id === id)?.is_locked, meId: me.id }).own;
   }, [d, me]);
 
-  if (!d || !g) return <>{children}</>;
+  // until the session is known a signed-in member's page keeps the public hero's space but not its look (html[data-auth])
+  if (!d || !g) return <div className="mh-wait">{children}</div>;
   if (!me || !tree) {
     return (
       <div className="hero-in mh">

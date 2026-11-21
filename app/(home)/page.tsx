@@ -150,7 +150,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="sec members" aria-labelledby="m-h">
+      <section className="sec members" data-pub aria-labelledby="m-h">
         <div className="sec-in col">
           <h2 id="m-h">सदस्यका लागि के छ</h2>
           <p className="lede">इतिहास सबैका लागि खुला छ। परिवारको व्यक्तिगत विवरण भने लगइन गरेका सदस्यले मात्र, आफ्नो भूमिकाअनुसार देख्छन्।</p>

@@ -186,6 +186,7 @@ function Shell() {
           : eff === "admin" ? "admin" : "none"
         }
         account={account}
+        pending={phase === "loading"}
         onTab={inApp ? (t) => setTab(t) : undefined}
       />
       {inApp && (!online || outbox.length > 0) && (

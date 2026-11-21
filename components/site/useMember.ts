@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { myRoles } from "@/lib/vansh/graph";
+import { clearAuthHint } from "@/lib/vansh/authHint";
 import type { VPerson, VProfile } from "@/lib/vansh/types";
 
 export interface MemberData {
@@ -38,7 +39,10 @@ export function useMember(): { d: MemberData | null; reload: () => Promise<void>
   const [d, setD] = useState<MemberData | null>(null);
   useEffect(() => {
     let off = false;
-    (cache ||= load().catch(() => null)).then((x) => !off && setD(x));
+    (cache ||= load().catch(() => null)).then((x) => {
+      if (!x) clearAuthHint(); // no session: the signed-out page may show
+      if (!off) setD(x);
+    });
     return () => {
       off = true;
     };

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SPRITE_INNER } from "@/components/vansh/spriteInner";
+import { AUTH_HINT_SCRIPT } from "@/lib/vansh/authHint";
 import "./vansh.css";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function VanshLayout({ children }: Readonly<{ children: React.Rea
   return (
     <html lang="ne" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: AUTH_HINT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
