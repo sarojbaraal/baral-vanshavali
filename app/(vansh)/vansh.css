@@ -947,3 +947,22 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .seg.sm { margin: 0; padding: 2px; }
 .seg.sm button { min-height: 34px; padding: .2rem .8rem; font-size: .88rem; }
 .seg.sm button:disabled { opacity: .5; }
+
+/* semantic zoom: #stage[data-lod] is set from the zoom level (lib/vansh/lod.ts) */
+#stage[data-lod="mid"] .cd { backdrop-filter: none; -webkit-backdrop-filter: none; justify-content: center; padding-inline: .5rem; }
+#stage[data-lod="mid"] .gn, #stage[data-lod="mid"] .tx span { display: none; }
+#stage[data-lod="mid"] .av { width: 52px; height: 52px; border-radius: 14px; }
+#stage[data-lod="mid"] .tx b { font-size: 1.45rem; font-weight: 600; }
+#stage[data-lod="far"] .cd { background: var(--gc, var(--cy)); border-color: transparent; border-radius: 12px; backdrop-filter: none; -webkit-backdrop-filter: none; transition: none; }
+#stage[data-lod="far"] .cd > * { visibility: hidden; }
+#stage[data-lod="far"] .cd.gF { background: color-mix(in srgb, var(--gc, var(--cy)) 78%, #a4506a); }
+#stage[data-lod="far"] .cd.dead { opacity: .55; }
+#stage[data-lod="far"] .cd.locked { background: var(--faint); }
+#stage[data-lod="far"] .cd.mine { box-shadow: 0 0 0 16px color-mix(in srgb, var(--mg) 45%, transparent), 0 0 0 4px var(--mg); z-index: 5; }
+#stage[data-lod="far"] .cd.sel { box-shadow: 0 0 0 14px var(--cy-glow), 0 0 0 4px var(--cy); }
+#stage[data-lod="far"] .cd:hover { transform: none; }
+#stage[data-lod="far"] .ln { stroke-width: 7; }
+#stage[data-lod="far"] .ln.path, #stage[data-lod="far"] .ln.on { stroke-width: 12; }
+#stage[data-lod="far"] .band text, #stage[data-lod="far"] button.tg { font-size: 34px; }
+#stage[data-lod="far"] .band text { opacity: 1; }
+#stage[data-lod="far"] button.tg { min-width: 60px; height: 44px; font-size: 24px; }
