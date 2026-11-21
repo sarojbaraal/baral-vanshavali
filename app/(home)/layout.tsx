@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: { default: "बराल वंशावली — हाम्रो इतिहास, हाम्रो पहिचान", template: "%s | बराल वंशावली" },
   description: "घृतकौशिक गोत्रीय बराल वंशको इतिहास, उत्पत्ति र फैलावट, र परिवारको वंशवृक्ष।",
   manifest: "/manifest.json",
-  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  icons: { icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png" },
   openGraph: {
     title: "बराल वंशावली",
     description: "हाम्रो इतिहास, हाम्रो पहिचान",

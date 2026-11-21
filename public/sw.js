@@ -1,5 +1,5 @@
 // Offline shell for the Vansavali PWA. Data (Supabase) and API calls always go to the network.
-const V = "vansh-next-2";
+const V = "vansh-next-3";
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => {
   e.waitUntil(

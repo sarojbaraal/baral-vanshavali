@@ -13,7 +13,7 @@
 .sn-brand span { display: grid; line-height: 1.25; }
 .sn-brand b { font-size: 1.45rem; font-weight: 700; color: var(--c-green); white-space: nowrap; }
 .sn-brand small { font-size: .82rem; color: var(--c-gold); }
-.sn-logo { flex: none; }
+.sn-logo { flex: none; border-radius: 50%; box-shadow: 0 1px 6px rgba(49, 61, 36, .35); }
 .sn-menu { display: flex; align-items: center; gap: clamp(.8rem, 1.7vw, 1.7rem); }
 .sn .sn-menu a { color: var(--c-green); text-decoration: none; font-size: 1.05rem; padding: .35rem 0; border-bottom: 2px solid transparent; white-space: nowrap; }
 .sn .sn-menu a:hover { border-bottom-color: var(--c-gold); }
