@@ -22,13 +22,15 @@ export function PrivacyDialog() {
   const { db, me, g, closeDialog, toast, reload } = useVansh();
   const p: VPerson | undefined = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
   const [v, setV] = useState<Record<string, Level>>(() => ({ ...(p?.privacy || {}) }) as Record<string, Level>);
+  const [rem, setRem] = useState(!!me?.email_reminders);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
     const { error } = await db.rpc("set_my_privacy", { p_privacy: v });
+    const r2 = error ? null : await db.rpc("set_email_reminders", { p_on: rem });
     setBusy(false);
-    if (error) return setErr(error.message);
+    if (error || r2?.error) return setErr((error || r2?.error)!.message);
     toast("✅ गोपनीयता सेटिङ सुरक्षित भयो");
     closeDialog();
     reload();
@@ -60,6 +62,10 @@ export function PrivacyDialog() {
       <p className="mut" style={{ fontSize: ".85rem" }}>
         &ldquo;भूमिकाअनुसार सबै सदस्य&rdquo; भनेको साइटको सामान्य नियम हो: साधारण सदस्यले अरूको फोन/ठेगाना देख्दैनन्, र १८ वर्षमुनिकाको जन्ममिति/फोटो नजिकका नातामा मात्र सीमित हुन्छ।
       </p>
+      <label className="chk">
+        <input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />
+        <span>📧 जन्मदिन/वर्षगाँठ अनुस्मारक {me?.email ? `(${me.email})` : ""} मा पठाउनुहोस्<small className="mut" style={{ display: "block" }}>तपाईं, जीवनसाथी, बुबाआमा, दाजुभाइ-दिदीबहिनी र सन्तानका मात्र; बिहान ७ बजे, आजको र भोलिको।</small></span>
+      </label>
       <div className="msg">{err}</div>
       <div className="row">
         <button disabled={busy} onClick={save}>सुरक्षित गर्ने</button>

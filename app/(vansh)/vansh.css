@@ -916,3 +916,7 @@ a.abtn:hover { color: var(--cy); border-color: var(--cy); }
   .prof-grid { grid-template-columns: 1fr; }
   .prof-av { width: 84px; height: 84px; }
 }
+
+/* checkbox row inside dialogs */
+.dlg label.chk, label.chk { display: flex; gap: .6rem; align-items: flex-start; margin: .8rem 0; font-weight: 500; }
+label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: .2rem; flex: none; accent-color: #44563a; }
