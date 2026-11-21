@@ -8,6 +8,7 @@ import {
   CH, CW, GEN, SCREEN_DIMS, compactCollapsed, computeLayout, initialCollapsed, myBranchCollapsed, openUp,
 } from "@/lib/vansh/layout";
 import { dispName, match, np, yr } from "@/lib/vansh/text";
+import { lodOf } from "@/lib/vansh/lod";
 import { relMap } from "@/lib/vansh/relations";
 import type { VPerson } from "@/lib/vansh/types";
 import { useVansh } from "./VanshContext";
@@ -89,6 +90,7 @@ export default function TreeView() {
     clampV();
     const v = V.current;
     if (stageRef.current) stageRef.current.style.transform = `translate(${v.x}px,${v.y}px) scale(${v.k})`;
+    if (stageRef.current && stageRef.current.dataset.lod !== lodOf(v.k)) stageRef.current.dataset.lod = lodOf(v.k);
     if (zrRef.current) zrRef.current.value = String(Math.round(v.k * 100));
   };
   const zoomAt = (f: number, cx: number, cy: number) => {
