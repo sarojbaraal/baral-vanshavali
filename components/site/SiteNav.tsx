@@ -9,7 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 import { myRoles, ROLE_L } from "@/lib/vansh/graph";
 import type { VProfile } from "@/lib/vansh/types";
 
-export type NavKey = "home" | "history" | "profile" | "branches" | "lineage" | "members" | "contact" | "admin" | "none";
+export type NavKey = "home" | "history" | "profile" | "lineage" | "members" | "contact" | "admin" | "none";
 export type AppTab = "me" | "fam" | "tree" | "mem" | "admin";
 export type AccountAction = "profile" | "add" | "kin" | "download" | "privacy" | "report" | "password" | "logout";
 
@@ -29,29 +29,25 @@ export interface AccountInfo {
 
 type Item = { k: NavKey; l: string; href: string; tab?: AppTab };
 
+// signed out: the public pages and the tree gate. Signed in: five places, one question each —
+// home (what is new), the tree (who are we), members (who is who), history, profile (who am I). "सम्पर्क" lives in the footer and the account menu.
 const OUT: Item[] = [
   { k: "home", l: "गृहपृष्ठ", href: "/" },
-  { k: "lineage", l: "हाम्रो वंश", href: "/app?tab=tree", tab: "tree" },
+  { k: "lineage", l: "वंशवृक्ष", href: "/app?tab=tree", tab: "tree" },
   { k: "history", l: "इतिहास", href: "/history" },
-  { k: "branches", l: "परिवार", href: "/app?tab=fam", tab: "fam" },
   { k: "contact", l: "सम्पर्क", href: "/contact" },
 ];
 const IN: Item[] = [
   { k: "home", l: "गृहपृष्ठ", href: "/" },
+  { k: "lineage", l: "वंशवृक्ष", href: "/app?tab=tree", tab: "tree" },
+  { k: "members", l: "सदस्य", href: "/app?tab=fam", tab: "fam" },
   { k: "history", l: "इतिहास", href: "/history" },
   { k: "profile", l: "प्रोफाईल", href: "/app?tab=me", tab: "me" },
-  { k: "branches", l: "परिवार", href: "/app?tab=fam", tab: "fam" },
-  { k: "lineage", l: "हाम्रो वंश", href: "/app?tab=tree", tab: "tree" },
-  { k: "members", l: "सबै सदस्य", href: "/app?tab=mem", tab: "mem" },
-  { k: "contact", l: "सम्पर्क", href: "/contact" },
 ];
 const ADMIN: Item = { k: "admin", l: "एडमिन", href: "/app?tab=admin", tab: "admin" };
 
 const MENU: { a: AccountAction; l: string; icon: string; sep?: boolean }[] = [
   { a: "profile", l: "प्रोफाईल", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" },
-  { a: "add", l: "सदस्य थप्ने", icon: "M15 12a4 4 0 1 0-6 0M3 21c0-4 3-6 6-6M18 9v6M15 12h6" },
-  { a: "kin", l: "नाता सन्दर्भ", icon: "M12 3l3 6 6 1-4.5 4.2L18 21l-6-3.3L6 21l1.5-6.8L3 10l6-1z" },
-  { a: "download", l: "वंशावली डाउनलोड", icon: "M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" },
   { a: "privacy", l: "गोपनीयता सेटिङ", icon: "M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5z", sep: true },
   { a: "report", l: "समस्या रिपोर्ट", icon: "M12 3l10 18H2zM12 10v5M12 18v.5" },
 ];
@@ -163,6 +159,12 @@ function AccountMenu({ acc }: { acc: AccountInfo }) {
               </button>
             </React.Fragment>
           ))}
+          <Link role="menuitem" href="/contact" className="sn-mi" onClick={() => setOpen(false)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 5h16v14H4zM4 7l8 6 8-6" />
+            </svg>
+            सम्पर्क
+          </Link>
           {acc.oauthOnly && (
             <button role="menuitem" onClick={() => go("password")}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -250,6 +252,14 @@ export default function SiteNav({
           )}
         </nav>
         <div className="sn-end">
+          {acc && (
+            <button className="sn-add" onClick={() => acc.onAction("add")} title="सदस्य थप्ने">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>सदस्य थप्ने</span>
+            </button>
+          )}
           {acc && <AccountMenu acc={acc} />}
           <button className="sn-burger" aria-expanded={open} aria-controls="sn-menu" onClick={() => setOpen(!open)}>
             <span className="sn-bars" aria-hidden="true" />

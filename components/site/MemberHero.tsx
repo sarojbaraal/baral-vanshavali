@@ -2,51 +2,18 @@
 // Home hero for signed-in members: instead of the AI picture, their own small family tree (grandparents → parents →
 // them with siblings, spouse and children), set on a framed sheet of paper, with a few facts about them.
 // Signed-out visitors, and members without a place in the tree, keep the public hero passed in as children.
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
-import { createGraph, myRoles } from "@/lib/vansh/graph";
+import { createGraph } from "@/lib/vansh/graph";
+import { useMember } from "./useMember";
 import { familyEvents, whenLabel } from "@/lib/vansh/events";
 import { lineageSvg } from "@/lib/vansh/lineage";
 import { fatherLine } from "@/lib/vansh/profileFacts";
 import { genNo } from "@/lib/vansh/relations";
 import { np } from "@/lib/vansh/text";
-import type { VPerson, VProfile } from "@/lib/vansh/types";
-
-interface Loaded {
-  name: string;
-  people: VPerson[];
-  meId: string | null;
-}
 
 export default function MemberHero({ children }: { children: React.ReactNode }) {
-  const [d, setD] = useState<Loaded | null>(null);
-
-  useEffect(() => {
-    let off = false;
-    const db = createClient();
-    db.auth
-      .getSession()
-      .then(async ({ data }) => {
-        if (!data.session) return;
-        const { data: pr } = await db.from("profiles").select("*").eq("id", data.session.user.id).maybeSingle();
-        const p = pr as VProfile | null;
-        if (!p || p.suspended_at) return;
-        const rs = myRoles(p) as string[];
-        let saved: string | null = null;
-        try {
-          saved = localStorage.getItem("vv_role");
-        } catch {}
-        const role = saved && rs.includes(saved) ? saved : rs[0] || null;
-        const { data: ppl, error } = await db.rpc("get_people", { p_role: role, p_as_person: null });
-        if (off || error) return;
-        setD({ name: p.full_name || "", people: (ppl as VPerson[]) || [], meId: p.position_person_id || null });
-      })
-      .catch(() => {});
-    return () => {
-      off = true;
-    };
-  }, []);
+  const { d } = useMember();
 
   const g = useMemo(() => (d ? createGraph(d.people) : null), [d]);
   const me = d && g && d.meId ? g.byId[d.meId] : undefined;

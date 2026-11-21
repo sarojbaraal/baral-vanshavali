@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
 import MemberHero from "@/components/site/MemberHero";
+import MemberDash from "@/components/site/MemberDash";
 import { tornPath } from "./torn";
 
 // Four promises under the hero. Wording sticks to what the site really does.
@@ -118,6 +119,8 @@ export default function HomePage() {
           </ul>
         </div>
       </section>
+
+      <MemberDash />
 
       <section className="sec glimpse" aria-labelledby="g-h">
         <div className="sec-in">
