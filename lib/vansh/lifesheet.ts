@@ -17,6 +17,8 @@ export interface SheetInput {
   /** lineage SVG markup */
   chart: string;
   today: string;
+  /** born into the बराल line: only then the shared gotra / ved / pravar are printed */
+  baral: boolean;
 }
 
 const COMMON_KEYS = ["गोत्र", "वेद", "प्रवर"];
@@ -78,7 +80,7 @@ ${s.line.length > 1 ? `<div class="line">${esc(s.line.join(" → "))}</div>` : `
 <div class="top"><div class="ph">${face}</div><dl>${s.facts.map((f) => `<dt>${esc(f.k)}</dt><dd>${esc(f.v)}</dd>`).join("")}</dl></div>
 ${bio ? `<div class="bio"><h2>जीवनी</h2>${bio}${s.bioAi ? "<small>यो जीवनी रेकर्डमा भएका तथ्यबाट AI ले लेखेको हो।</small>" : ""}</div>` : ""}
 <div class="chart"><h2>हजुरबुबादेखिको वंशवृक्ष</h2>${s.chart}</div>
-<div class="foot"><h2>साझा वंश-जानकारी</h2><ul class="common">${common}</ul><div class="stamp"><span>baral-vanshavali.vercel.app</span><span>${esc(s.today)}</span></div></div>
+<div class="foot">${s.baral ? `<h2>साझा वंश-जानकारी</h2><ul class="common">${common}</ul>` : ""}<div class="stamp"><span>vanshavali.sarojbaral.com.np</span><span>${esc(s.today)}</span></div></div>
 </div></div>
 </body></html>`;
 }

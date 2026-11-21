@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "हाम्रो वंशावली",
   description: "परिवारको वंशावली — हेर्ने र अनुरोध पठाउने एप",
   manifest: "/manifest.json",
-  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  icons: { icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "वंशावली", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };

@@ -1,13 +1,15 @@
 "use client";
 // "प्रोफाईल": the signed-in person's own page — facts, biography (AI-written from recorded facts, editable),
 // the lineage from the grandfather, the common family facts, and a printable life-sheet.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BASIS, IDENTITY } from "@/lib/vansh/intro";
 import { generateBio } from "@/lib/vansh/aiSummary";
 import { chartGoto } from "@/lib/vansh/chartGoto";
 import { lineageSvg } from "@/lib/vansh/lineage";
+import { descendantsSvg } from "@/lib/vansh/descendants";
 import { lifeSheetHtml, openLifeSheet } from "@/lib/vansh/lifesheet";
+import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
 import { genNo } from "@/lib/vansh/relations";
 import { ageN, np } from "@/lib/vansh/text";
@@ -25,8 +27,17 @@ export default function ProfileView() {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [zoom, setZoom] = useState(0.8);
 
   const chart = useMemo(() => (p ? lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }) : null), [g, p, perms.nm]);
+
+  const desc = useMemo(() => (p ? descendantsSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
+
+  // first view: the whole chart fits the screen (never larger than 80%)
+  const descW = desc?.width || 0;
+  useEffect(() => {
+    if (descW) setZoom(Math.max(0.35, Math.min(0.8, (Math.min(window.innerWidth, 1100) - 64) / descW)));
+  }, [descW]);
 
   if (!p)
     return (
@@ -45,6 +56,7 @@ export default function ProfileView() {
   const gen = genNo(g, p.id);
   const age = ageN(p.birth_bs, p.death_bs);
   const kin = fatherLine(g, p, perms.nm);
+  const baral = isBaralByBirth(g, p);
 
   const write = async () => {
     setBusy(true);
@@ -77,8 +89,18 @@ export default function ProfileView() {
       bioAi: !!p.bio_ai,
       chart: lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }).svg,
       today,
+      baral,
     });
     if (!openLifeSheet(html)) toast("⚠ नयाँ विन्डो खुल्न दिइएन; ब्राउजरमा पप-अप अनुमति दिनुहोस्");
+  };
+  const saveDesc = () => {
+    if (!desc) return;
+    const url = URL.createObjectURL(new Blob([desc.svg], { type: "image/svg+xml" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vanshavistar.svg";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const seeInTree = () => {
     chartGoto.id = p.id;
@@ -166,22 +188,50 @@ export default function ProfileView() {
         <p className="mut">बुबा-आमाको नाम रेकर्डमा भए मात्र माथिल्ला पुस्ता देखिन्छन्। नपुगेको विवरण थप्न &ldquo;विवरण सच्याउने&rdquo; प्रयोग गर्नुहोस्।</p>
       </section>
 
-      <section className="card">
-        <div className="prof-bar">
-          <h3>साझा वंश-जानकारी</h3>
-          <Link href="/history">पूरा इतिहास पढ्नुहोस्</Link>
-        </div>
-        <dl className="facts">
-          {IDENTITY.filter((x) => ["गोत्र", "वेद", "प्रवर", "थरको स्रोत"].includes(x.k)).map((x) => (
-            <React.Fragment key={x.k}>
-              <dt>{x.k}</dt>
-              <dd>
-                {x.v} <span className="ev" title={BASIS[x.b].t}>{BASIS[x.b].l}</span>
-              </dd>
-            </React.Fragment>
-          ))}
-        </dl>
-      </section>
+      {desc && desc.count > 1 && (
+        <section className="card desc-card">
+          <div className="prof-bar">
+            <h3>वंश-विस्तार <span className="mut">· {desc.root.id === p.id ? "तपाईंदेखि तल" : "हजुरबुबादेखि तलका सबै सदस्य"}</span></h3>
+            <div className="desc-tools" role="group" aria-label="चार्ट आकार">
+              <button className="ghost" aria-label="सानो" onClick={() => setZoom((z) => Math.max(0.35, +(z - 0.15).toFixed(2)))}>−</button>
+              <span>{np(Math.round(zoom * 100))}%</span>
+              <button className="ghost" aria-label="ठूलो" onClick={() => setZoom((z) => Math.min(1.6, +(z + 0.15).toFixed(2)))}>+</button>
+              <button className="ghost" onClick={saveDesc}>⬇ SVG</button>
+            </div>
+          </div>
+          <div className="desc-wrap">
+            <div className="desc" style={{ width: desc.width * zoom }} dangerouslySetInnerHTML={{ __html: desc.svg }} />
+          </div>
+          <p className="mut">सुनौलो बाटोले तपाईंसम्मको वंश-क्रम देखाउँछ। दायाँ-बायाँ सार्न स्क्रोल गर्नुहोस्, सानो/ठूलो गर्न + − थिच्नुहोस्।</p>
+        </section>
+      )}
+
+      {baral ? (
+        <section className="card">
+          <div className="prof-bar">
+            <h3>साझा वंश-जानकारी</h3>
+            <Link href="/history">पूरा इतिहास पढ्नुहोस्</Link>
+          </div>
+          <dl className="facts">
+            {IDENTITY.filter((x) => ["गोत्र", "वेद", "प्रवर", "थरको स्रोत"].includes(x.k)).map((x) => (
+              <React.Fragment key={x.k}>
+                <dt>{x.k}</dt>
+                <dd>
+                  {x.v} <span className="ev" title={BASIS[x.b].t}>{BASIS[x.b].l}</span>
+                </dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </section>
+      ) : (
+        <section className="card">
+          <div className="prof-bar">
+            <h3>गोत्र र प्रवर</h3>
+            <Link href="/history">बराल वंशको इतिहास</Link>
+          </div>
+          <p className="mut">साइटमा देखाइएको गोत्र, वेद र प्रवर बराल थरको हो। तपाईं अर्को थरमा जन्मनुभएकाले तपाईंको गोत्र र प्रवर फरक हुन सक्छ; यहाँ अनुमान गरेर राखिएको छैन।</p>
+        </section>
+      )}
 
       <h3 className="prof-h">मेरा अनुरोध</h3>
       <MineView />

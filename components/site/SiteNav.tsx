@@ -57,19 +57,9 @@ const MENU: { a: AccountAction; l: string; icon: string; sep?: boolean }[] = [
 ];
 
 export function Logo({ size = 48 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="sn-logo">
-      <circle cx="24" cy="24" r="24" fill="#313d24" />
-      <g fill="none" stroke="#d9b36a" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="24" cy="14.5" r="3.6" />
-        <circle cx="14.5" cy="19" r="3" />
-        <circle cx="33.5" cy="19" r="3" />
-        <path d="M17.5 31c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8" />
-        <path d="M9 30.5c0-2.7 2-4.4 4.6-4.4M39 30.5c0-2.7-2-4.4-4.6-4.4" />
-        <path d="M11 36.5h26M13 36.5c3 2 7 3 11 3s8-1 11-3" />
-      </g>
-    </svg>
-  );
+  // the approved Baral heritage badge (public/logo.png)
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/logo.png" width={size} height={size} alt="" aria-hidden="true" className="sn-logo" decoding="async" />;
 }
 
 /** On public pages the app is not mounted, so read the session and profile here. */
