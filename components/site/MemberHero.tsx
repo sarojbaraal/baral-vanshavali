@@ -7,7 +7,7 @@ import Link from "next/link";
 import { createGraph } from "@/lib/vansh/graph";
 import { useMember } from "./useMember";
 import { familyEvents, whenLabel } from "@/lib/vansh/events";
-import { lineageSvg } from "@/lib/vansh/lineage";
+import { treeArtSvg } from "@/lib/vansh/treeArt";
 import { fatherLine } from "@/lib/vansh/profileFacts";
 import { genNo } from "@/lib/vansh/relations";
 import { np } from "@/lib/vansh/text";
@@ -18,7 +18,7 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
   const g = useMemo(() => (d ? createGraph(d.people) : null), [d]);
   const me = d && g && d.meId ? g.byId[d.meId] : undefined;
   const tree = useMemo(
-    () => (g && me ? lineageSvg(g, me, { selfLabel: "तपाईं", maternal: false, maxSibs: 2, maxKids: 3, noLabels: true }) : null),
+    () => (g && me ? treeArtSvg(g, me, { maxSibs: 3, maxKids: 4 }) : null),
     [g, me]
   );
   const today = useMemo(() => {
@@ -76,7 +76,7 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
       <figure className="hero-tree" aria-label="तपाईंको परिवारको वृक्ष">
         <div className="ht-sheet" dangerouslySetInnerHTML={{ __html: tree.svg }} />
         <figcaption>
-          तपाईंको वृक्ष{more.length ? ` · थप ${more.join(" र ")} पूरा वृक्षमा` : ""}
+          जरा: हजुरबुबा-हजुरआमा · काण्ड: बुबा-आमा · हाँगा: तपाईं र दाजुभाइ · पात: सन्तान{more.length ? ` · थप ${more.join(" र ")} पूरा वृक्षमा` : ""}
           <Link href="/app?tab=me">पूरा हेर्ने</Link>
         </figcaption>
       </figure>

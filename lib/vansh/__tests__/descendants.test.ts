@@ -29,6 +29,6 @@ describe("descendantsSvg", () => {
 
   it("draws each person once", () => {
     const d = descendantsSvg(g, g.byId["ram"]);
-    expect((d.svg.match(/fill="#1d2616"/g) || []).length).toBe(d.count);
+    expect((d.svg.match(/r="34" fill="#fffdf8"/g) || []).length).toBe(d.count);
   });
 });
