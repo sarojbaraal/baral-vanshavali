@@ -54,6 +54,8 @@ export interface VPerson {
   ai_summary_self_at?: string | null;
   ai_tags?: string[] | null;
   is_locked?: boolean;
+  /** an admin has hidden this person: only an admin (as admin) is sent them, and nothing printed or exported contains them */
+  hidden?: boolean;
   name_only?: boolean;
   created_at: string;
 }

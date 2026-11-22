@@ -5,6 +5,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 import type { ChangeRequest, NewRequest, RequestAction, TabKey, VPerson, VProfile, Role } from "@/lib/vansh/types";
+import { printable } from "@/lib/vansh/hidden";
 import {
   computeAccess, createGraph, hasClaim, hasPos, makePerms, myPos, myRoles,
   type Access, type Graph, type Perms,
@@ -40,6 +41,8 @@ export interface Vansh {
   roles: Role[];
   people: VPerson[];
   g: Graph;
+  /** the graph for anything that is printed or exported: hidden people removed (lib/vansh/hidden.ts) */
+  gPrint: Graph;
   access: Access;
   perms: Perms;
   /** admin preview: see the site as this person (read only) */
@@ -133,6 +136,7 @@ export function VanshProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { meRef.current = me; }, [me]);
   const roles = useMemo(() => myRoles(me), [me]);
   const g = useMemo(() => createGraph(people), [people]);
+  const gPrint = useMemo(() => (people.some((p) => p.hidden) ? createGraph(printable(people)) : g), [people, g]);
   const access = useMemo(() => computeAccess(g, me, act), [g, me, act]);
   const perms = useMemo(() => makePerms(act, access), [act, access]);
 
@@ -471,7 +475,7 @@ export function VanshProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: Vansh = {
-    db, phase, me, act, setAct, roles, people, g, access, perms, tab, setTab, sel, pick, unpick, toast, toastMsg,
+    db, phase, me, act, setAct, roles, people, g, gPrint, access, perms, tab, setTab, sel, pick, unpick, toast, toastMsg,
     reload, boot, openDialog, closeDialog, dialog, submit, send, treeApi, online, outbox, syncNow, discardOutbox,
     setRecovering: (v) => {
       recovering.current = v;

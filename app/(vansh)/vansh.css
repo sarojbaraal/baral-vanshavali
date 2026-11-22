@@ -966,3 +966,8 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 #stage[data-lod="far"] .band text, #stage[data-lod="far"] button.tg { font-size: 34px; }
 #stage[data-lod="far"] .band text { opacity: 1; }
 #stage[data-lod="far"] button.tg { min-width: 60px; height: 44px; font-size: 24px; }
+
+/* हटाइएको होइन, लुकाइएको: एडमिनले मात्र देख्ने सदस्य */
+.cd.hid { border-style: dashed; opacity: .72; }
+.cd.hid::before { content: "🙈"; position: absolute; right: 6px; bottom: 3px; font-size: .8rem; }
+.pp-l.hid { color: var(--mg); }

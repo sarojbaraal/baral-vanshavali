@@ -21,7 +21,7 @@ import { AnchorDialog, PersonForm } from "./PersonDialogs";
 import { useTodayLabel } from "./HeroAi";
 
 export default function ProfileView() {
-  const { db, me, g, perms, toast, reload, openDialog, setTab, pick } = useVansh();
+  const { db, me, g, gPrint, perms, toast, reload, openDialog, setTab, pick } = useVansh();
   const today = useTodayLabel();
   const p = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
   const [busy, setBusy] = useState(false);
@@ -80,23 +80,28 @@ export default function ProfileView() {
     toast("✅ जीवनी सुरक्षित भयो");
   };
   const print = () => {
+    // printed from the graph without hidden people: a hidden relative is not named anywhere on the sheet
+    const pp = gPrint.byId[p.id];
+    if (p.hidden || !pp) return toast("⚠ लुकाइएको सदस्यको पाना छापिँदैन");
     const html = lifeSheetHtml({
-      name: perms.nm(p),
-      photoUrl: p.photo_url,
-      initial: Array.from(p.name.trim())[0] || "•",
-      line: kin,
-      facts,
-      bio: p.bio || "",
-      bioAi: !!p.bio_ai,
-      chart: lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }).svg,
+      name: perms.nm(pp),
+      photoUrl: pp.photo_url,
+      initial: Array.from(pp.name.trim())[0] || "•",
+      line: fatherLine(gPrint, pp, perms.nm),
+      facts: profileFacts(gPrint, pp, { showEmail: true, nm: perms.nm }),
+      bio: pp.bio || "",
+      bioAi: !!pp.bio_ai,
+      chart: lineageSvg(gPrint, pp, { selfLabel: "म", nm: perms.nm }).svg,
       today,
       baral,
     });
     if (!openLifeSheet(html)) toast("⚠ नयाँ विन्डो खुल्न दिइएन; ब्राउजरमा पप-अप अनुमति दिनुहोस्");
   };
   const saveDesc = () => {
-    if (!desc) return;
-    const url = URL.createObjectURL(new Blob([desc.svg], { type: "image/svg+xml" }));
+    const pp = gPrint.byId[p.id];
+    if (!pp) return toast("⚠ लुकाइएको सदस्यको चार्ट डाउनलोड हुँदैन");
+    const out = descendantsSvg(gPrint, pp, { nm: perms.nm });
+    const url = URL.createObjectURL(new Blob([out.svg], { type: "image/svg+xml" }));
     const a = document.createElement("a");
     a.href = url;
     a.download = "vanshavistar.svg";

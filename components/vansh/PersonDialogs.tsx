@@ -31,6 +31,43 @@ function Note({ label = "एडमिनलाई सन्देश", value, on
 }
 
 // ---------------- delete ----------------
+/** एडमिन: लुकाउने / फेरि देखाउने. */
+export function HideDialog({ p }: { p: VPerson }) {
+  const { db, closeDialog, reload, toast } = useVansh();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const hide = !p.hidden;
+  const go = async () => {
+    setBusy(true);
+    const { error } = await db.rpc("admin_set_hidden", { p_id: p.id, p_hidden: hide });
+    setBusy(false);
+    if (error) return setErr(error.message);
+    closeDialog();
+    await reload();
+    toast(hide ? "🙈 लुकाइयो — अब एडमिनबाहेक कसैले देख्दैन" : "👁 फेरि देखिने भयो");
+  };
+  return (
+    <>
+      <h3>&quot;{p.name}&quot; {hide ? "लुकाउने" : "फेरि देखाउने"}</h3>
+      {hide ? (
+        <ul className="mut">
+          <li>एडमिन (एडमिन भूमिकामा) बाहेक कसैले यो व्यक्ति वंशवृक्ष, सूची, खोज वा नाता-गणनामा देख्दैन।</li>
+          <li>अरूका बुबा/आमा/जीवनसाथीका लिङ्कबाट पनि हटाइन्छ; यिनका सन्तान अर्का अभिभावकमा (नभए छुट्टै जरा) देखिन्छन्।</li>
+          <li>छाप्दा, PDF/पोस्टर/Excel/CSV मा र इमेल रिमाइन्डरमा यो व्यक्ति कतै आउँदैन — एडमिनले छाप्दा समेत।</li>
+          <li>पूर्ण JSON ब्याकअपमा भने डाटा सुरक्षित रहन्छ।</li>
+        </ul>
+      ) : (
+        <p className="mut">यो व्यक्ति फेरि सबैले आफ्नो पहुँच अनुसार देख्न थाल्छन्।</p>
+      )}
+      <div className="msg">{err}</div>
+      <div className="row">
+        <button className={hide ? "bad" : ""} disabled={busy} onClick={go}>{hide ? "हो, लुकाउने" : "हो, देखाउने"}</button>
+        <button className="ghost" onClick={closeDialog}>रद्द</button>
+      </div>
+    </>
+  );
+}
+
 export function DeleteDialog({ p }: { p: VPerson }) {
   const { perms, send, closeDialog } = useVansh();
   const [note, setNote] = useState("");
@@ -868,7 +905,7 @@ export function PasswordDialog() {
 
 /** शाखा प्रिन्ट: explains the 7-generation A3 PDF, then downloads it or points to the main download window. */
 export function BranchPrintDialog({ p }: { p: VPerson }) {
-  const { g, perms, openDialog, closeDialog } = useVansh();
+  const { gPrint: g, perms, openDialog, closeDialog } = useVansh();
   const mkStamp = useStampMaker();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -877,6 +914,7 @@ export function BranchPrintDialog({ p }: { p: VPerson }) {
     setErr("");
     try {
       const st = await mkStamp(`branch|${p.id}`);
+      if (p.hidden || !g.byId[p.id]) throw new Error("लुकाइएको सदस्य वा उनको शाखा छापिँदैन।");
       const out = await branchPrint(g, p.id, { can: perms.can, nm: perms.nm }, "a3", st, (ps) => loadPhotos(ps, perms.can));
       openDialog(
         <DownloadPreview
