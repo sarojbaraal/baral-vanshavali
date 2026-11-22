@@ -8,7 +8,7 @@ import { np } from "@/lib/vansh/text";
 import { useVansh } from "./VanshContext";
 import { Sx, personOptions, useSx } from "./ui";
 import { AcctDialog, AvatarsDialog } from "./AdminDialogs";
-import { AnchorDialog } from "./PersonDialogs";
+import { AnchorDialog, HideDialog } from "./PersonDialogs";
 import ReviewPanel, { reviewCount } from "./ReviewPanel";
 import { AnchorRequestsPanel, PreviewAsPanel, ViewRequestsPanel } from "./ViewAccess";
 import { reviewIssues } from "@/lib/vansh/review";
@@ -74,7 +74,7 @@ export function MineView() {
 }
 
 // ---------------- admin ----------------
-type Sec = "req" | "new" | "mem" | "hist" | "rev" | "view" | "as" | "msg";
+type Sec = "req" | "new" | "mem" | "hist" | "rev" | "view" | "as" | "msg" | "hid";
 interface SiteMsg { id: string; kind: "contact" | "problem"; name: string | null; email: string | null; subject: string | null; body: string; page: string | null; sender: string | null; status: "new" | "read" | "done"; created_at: string }
 
 /** Messages from the contact form and "समस्या रिपोर्ट" (admin only). */
@@ -246,7 +246,7 @@ export function AdminView() {
   const groups = groupBatches(reqs);
   const okIds = hist.filter((r) => r.status === "approved").map((r) => r.id);
   const cn = (c: string) => (c === "all" ? groups.length : groups.filter((x) => x.items[0].action === c).length);
-  const keys: Sec[] = adm ? ["req", "msg", "view", "new", "mem", "rev", "as", "hist"] : ["req"];
+  const keys: Sec[] = adm ? ["req", "msg", "view", "new", "mem", "rev", "hid", "as", "hist"] : ["req"];
   const cur: Sec = keys.includes(sec) ? sec : keys[0];
 
   const approve = async (ids: string[]) => {
@@ -303,6 +303,7 @@ export function AdminView() {
     await refresh();
   };
 
+  const hiddenN = adm ? g.people.filter((p) => p.hidden).length : 0;
   const revN = adm ? reviewCount(reviewIssues(g.people)) : 0;
   const sections: Record<Sec, [string, number]> = {
     new: ["🆕 नयाँ सदस्य", pend.length],
@@ -311,6 +312,7 @@ export function AdminView() {
     rev: ["🧭 सम्बन्ध समीक्षा", revN],
     hist: ["🕘 अनुरोध इतिहास", hist.length],
     view: ["👁 हेर्ने अनुमति", viewN],
+    hid: ["🙈 लुकाइएका सदस्य", hiddenN],
     as: ["🔎 पूर्वावलोकन", 0],
     msg: ["✉ सन्देश", msgs.filter((m) => m.status === "new").length],
   };
@@ -375,6 +377,8 @@ export function AdminView() {
         <ViewRequestsPanel onCount={setViewN} />
       </>
     );
+  } else if (cur === "hid") {
+    body = <HiddenPanel />;
   } else if (cur === "as") {
     body = <PreviewAsPanel />;
   } else if (cur === "msg") {
@@ -437,7 +441,7 @@ export function AdminView() {
   }
 
   const [ttl, cnt] = sections[cur];
-  const empty = cnt === 0 && cur !== "hist" && cur !== "rev" && cur !== "view" && cur !== "as" && cur !== "msg";
+  const empty = cnt === 0 && cur !== "hist" && cur !== "rev" && cur !== "view" && cur !== "as" && cur !== "msg" && cur !== "hid";
   return (
     <div className="adm">
       <div className="adm-main">
@@ -462,5 +466,44 @@ export function AdminView() {
         ))}
       </aside>
     </div>
+  );
+}
+
+/** Admin: every hidden member in one list, so nobody stays hidden by forgetting; show again one by one or all at once. */
+function HiddenPanel() {
+  const { db, g, openDialog, reload, toast } = useVansh();
+  const [q, setQ] = useState("");
+  const all = g.people.filter((p) => p.hidden).sort((a, b) => a.name.localeCompare(b.name, "ne"));
+  const rows = q.trim() ? all.filter((p) => p.name.includes(q.trim())) : all;
+  const showAll = async () => {
+    if (!confirm(`लुकाइएका सबै ${np(all.length)} सदस्य फेरि देखाउने?`)) return;
+    for (const p of all) {
+      const { error } = await db.rpc("admin_set_hidden", { p_id: p.id, p_hidden: false });
+      if (error) return alert(error.message);
+    }
+    await reload();
+    toast("👁 सबै फेरि देखिने भए");
+  };
+  if (!all.length) return <div className="card">कोही पनि लुकाइएको छैन।</div>;
+  return (
+    <>
+      <p className="mut">यी सदस्य एडमिनबाहेक कसैले देख्दैनन्, र छाप्दा/डाउनलोडमा पनि आउँदैनन्।</p>
+      <div className="row" style={{ marginBottom: ".8rem" }}>
+        <input placeholder="नामले खोज्ने" value={q} onChange={(e) => setQ(e.target.value)} />
+        <button className="ghost" onClick={showAll}>सबै फेरि देखाउने ({np(all.length)})</button>
+      </div>
+      {rows.map((p) => {
+        const f = p.father_id ? g.byId[p.father_id]?.name : "";
+        return (
+          <div className="card" key={p.id}>
+            🙈 <b>{p.name}</b>
+            <span className="mut">{f ? ` · बुबा: ${f}` : ""}{p.birth_bs ? ` · जन्म ${p.birth_bs}` : ""}{p.is_living === false ? " · दिवङ्गत" : ""}</span>
+            <div className="row">
+              <button onClick={() => openDialog(<HideDialog p={p} />)}>👁 फेरि देखाउने</button>
+            </div>
+          </div>
+        );
+      })}
+    </>
   );
 }
