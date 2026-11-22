@@ -11,6 +11,7 @@ import { descendantsSvg } from "@/lib/vansh/descendants";
 import { fanSvg } from "@/lib/vansh/fan";
 import { jpgBlob, stamp as today10, svgBlob } from "@/lib/vansh/exporters";
 import { lifeSheetHtml, openLifeSheet } from "@/lib/vansh/lifesheet";
+import { muralSvg } from "@/lib/vansh/mural";
 import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
 import { genNo, relsOf } from "@/lib/vansh/relations";
@@ -89,6 +90,7 @@ export default function ProfileView() {
     // printed from the graph without hidden people: a hidden relative is not named anywhere on the sheet
     const pp = gPrint.byId[p.id];
     if (p.hidden || !pp) return toast("⚠ लुकाइएको सदस्यको पाना छापिँदैन");
+    const mural = muralSvg(gPrint, pp, { nm: perms.nm });
     const html = lifeSheetHtml({
       name: perms.nm(pp),
       photoUrl: pp.photo_url,
@@ -98,6 +100,7 @@ export default function ProfileView() {
       bio: pp.bio || "",
       bioAi: !!pp.bio_ai,
       chart: lineageSvg(gPrint, pp, { selfLabel: "म", nm: perms.nm }).svg,
+      mural: mural && mural.ids.length > 1 ? mural.svg : undefined,
       today,
       baral,
     });

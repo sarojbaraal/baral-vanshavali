@@ -29,7 +29,7 @@ const FONT = 'font-family="Noto Serif Devanagari, Tiro Devanagari Hindi, serif"'
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 const cut = (s: string, n: number) => (Array.from(s).length > n ? Array.from(s).slice(0, n - 1).join("") + "…" : s);
 
-function rng(seed: string) {
+export function rng(seed: string) {
   let h = 1779033703 ^ seed.length;
   for (let i = 0; i < seed.length; i++) {
     h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);

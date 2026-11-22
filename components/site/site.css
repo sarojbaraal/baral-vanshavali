@@ -56,6 +56,7 @@
 .sn .sn-add { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: .3rem 1.05rem .3rem .8rem; border-radius: 999px; border: 1.5px solid var(--c-green); background: var(--c-green); color: #fff; font: 600 .96rem var(--c-serif); cursor: pointer; white-space: nowrap; }
 .sn .sn-add:hover { background: var(--c-green-2); border-color: var(--c-green-2); }
 .sn .sn-add svg { color: var(--c-gold-2); }
+@media (max-width: 760px) { .sn .sn-add { display: none; } }
 @media (max-width: 560px) { .sn .sn-add { width: 44px; padding: 0; justify-content: center; } .sn .sn-add span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 .sn-ver { display: block; padding: .4rem .7rem 0; font-size: .75rem; color: var(--c-mut); }
 

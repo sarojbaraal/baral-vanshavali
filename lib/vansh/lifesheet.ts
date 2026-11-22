@@ -1,4 +1,4 @@
-// The printable "वंश परिचय पत्र": one artistic A4 sheet with photo, facts, biography and the lineage chart.
+// The printable "वंश परिचय पत्र": an artistic A4 sheet with photo, facts and biography, and (page 2) the family tree painted as a wall mural.
 // It opens in a new window; the person prints it or saves it as a PDF from the browser's print dialog.
 import type { Fact } from "./profileFacts";
 import { BASIS, IDENTITY } from "./intro";
@@ -14,8 +14,10 @@ export interface SheetInput {
   facts: Fact[];
   bio: string;
   bioAi: boolean;
-  /** lineage SVG markup */
+  /** lineage SVG markup (page 1; left out when the mural below is given) */
   chart: string;
+  /** the family tree painted as a wall mural: printed on its own second page */
+  mural?: string;
   today: string;
   /** born into the बराल line: only then the shared gotra / ved / pravar are printed */
   baral: boolean;
@@ -66,11 +68,14 @@ h2::after { content: ""; flex: 1; border-top: 1px solid rgba(181,138,66,.6) }
 .bio small { display: block; color: #7d5a1e; font-size: 10.5px; margin-top: 2px }
 .chart { margin-top: 7mm; break-inside: avoid }
 .chart svg { display: block; width: 100%; height: auto; max-height: 100mm }
+.frame2 { padding: 5mm 6mm 4mm }
+.mural { flex: 1; display: grid; place-items: center; min-height: 0 }
+.mural svg { display: block; width: 100%; height: auto; max-height: 246mm; border-radius: 3mm }
 .foot { margin-top: auto; padding-top: 6mm }
 .common { margin: 0; padding: 0; list-style: none; font-size: 11.5px; line-height: 1.7; color: #47463a }
 .common i { color: #7d5a1e; font-style: normal; font-size: 10px; margin-left: 4px }
 .stamp { margin-top: 5px; display: flex; justify-content: space-between; color: #6b6a5c; font-size: 10.5px }
-@media print { html { background: none } .bar { display: none } .sheet { margin: 0; box-shadow: none; width: 210mm; height: 297mm; min-height: 0; overflow: hidden; page-break-after: always } }
+@media print { html { background: none } .bar { display: none } .sheet { margin: 0; box-shadow: none; width: 210mm; height: 297mm; min-height: 0; overflow: hidden; page-break-after: always } .sheet:last-of-type { page-break-after: auto } }
 </style></head><body>
 <div class="bar"><span>A4 पाना तयार छ</span><button onclick="window.print()">प्रिन्ट / PDF सेभ गर्नुहोस्</button></div>
 <div class="sheet"><div class="frame"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i>
@@ -79,9 +84,10 @@ h2::after { content: ""; flex: 1; border-top: 1px solid rgba(181,138,66,.6) }
 ${s.line.length > 1 ? `<div class="line">${esc(s.line.join(" → "))}</div>` : `<div class="line">&nbsp;</div>`}
 <div class="top"><div class="ph">${face}</div><dl>${s.facts.map((f) => `<dt>${esc(f.k)}</dt><dd>${esc(f.v)}</dd>`).join("")}</dl></div>
 ${bio ? `<div class="bio"><h2>जीवनी</h2>${bio}${s.bioAi ? "<small>यो जीवनी रेकर्डमा भएका तथ्यबाट AI ले लेखेको हो।</small>" : ""}</div>` : ""}
-<div class="chart"><h2>हजुरबुबादेखिको वंशवृक्ष</h2>${s.chart}</div>
+${s.mural ? "" : `<div class="chart"><h2>हजुरबुबादेखिको वंशवृक्ष</h2>${s.chart}</div>`}
 <div class="foot">${s.baral ? `<h2>साझा वंश-जानकारी</h2><ul class="common">${common}</ul>` : ""}<div class="stamp"><span>vanshavali.sarojbaral.com.np</span><span>${esc(s.today)}</span></div></div>
 </div></div>
+${s.mural ? `<div class="sheet"><div class="frame frame2"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i><div class="mural">${s.mural}</div><div class="stamp"><span>${esc(s.name)} · वंशवृक्ष</span><span>${esc(s.today)}</span></div></div></div>` : ""}
 </body></html>`;
 }
 
