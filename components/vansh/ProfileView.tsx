@@ -35,6 +35,7 @@ export default function ProfileView() {
 
   const chart = useMemo(() => (p ? lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }) : null), [g, p, perms.nm]);
 
+  const royal = useMemo(() => (p ? muralSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
   const desc = useMemo(() => (p ? descendantsSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
   const fan = useMemo(() => (p ? fanSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
   const mkStamp = useStampMaker();
@@ -218,7 +219,11 @@ export default function ProfileView() {
           <h3>हजुरबुबादेखिको वंशवृक्ष</h3>
           <button className="ghost" onClick={print}>🖨 कलात्मक पाना छाप्ने</button>
         </div>
-        <div className="lineage" dangerouslySetInnerHTML={{ __html: chart?.svg || "" }} />
+        {royal && royal.ids.length > 1 ? (
+          <div className="lineage royal" dangerouslySetInnerHTML={{ __html: royal.svg }} />
+        ) : (
+          <div className="lineage" dangerouslySetInnerHTML={{ __html: chart?.svg || "" }} />
+        )}
         <p className="mut">बुबा-आमाको नाम रेकर्डमा भए मात्र माथिल्ला पुस्ता देखिन्छन्। नपुगेको विवरण थप्न &ldquo;विवरण सच्याउने&rdquo; प्रयोग गर्नुहोस्।</p>
       </section>
 

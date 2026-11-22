@@ -8,7 +8,7 @@
 //     except the viewer's own line (the road down to them, their spouse and children), which always keeps its frames.
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
-import { descendantsRoot } from "./descendants";
+import { descendantsRoot, familyOrder, parentSlot, sortKids } from "./descendants";
 import { np, yr } from "./text";
 
 export interface Mural {
@@ -45,6 +45,7 @@ const cut = (s: string, n: number) => (Array.from(s).length > n ? Array.from(s).
 interface N {
   p: VPerson;
   spouses: VPerson[];
+  order: VPerson[];
   kids: N[];
   depth: number;
   plate: boolean;
@@ -68,8 +69,9 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     const family = p.gender !== "F" || p.id === me.id;
     const spouses = family ? g.spousesOf(p).map((id) => g.byId[id]).filter((s): s is VPerson => !!s && !seen.has(s.id)) : [];
     spouses.forEach((s) => seen.add(s.id));
-    const kids = family && depth < MAXD ? g.kidsOf(p).filter((k) => !seen.has(k.id)).sort(g.byBirth).map((k) => build(k, depth + 1)) : [];
-    return { p, spouses, kids, depth, plate: false, keep: false, lit: false, w: 0, x: 0 };
+    const order = familyOrder(p, spouses);
+    const kids = family && depth < MAXD ? sortKids(p, order, g.kidsOf(p).filter((k) => !seen.has(k.id)).sort(g.byBirth)).map((k) => build(k, depth + 1)) : [];
+    return { p, spouses, order, kids, depth, plate: false, keep: false, lit: false, w: 0, x: 0 };
   };
   const tree = build(root, 0);
 
@@ -251,12 +253,12 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
   };
 
   flat.forEach((n) => {
-    const people = [n.p, ...n.spouses];
+    const people = n.order;
     const sl = slot(n);
     const lft = X(n) - (people.length * sl) / 2 + sl / 2;
     people.forEach((p, i) => {
       const cx = lft + i * sl;
-      drawPerson(p, cx, n.depth, n.plate, n.lit && i === 0, p.id === me.id);
+      drawPerson(p, cx, n.depth, n.plate, n.lit && p.id === n.p.id, p.id === me.id);
       if (i > 0 && !n.plate) {
         // a couple: a gold seal with a heart between the two frames
         const hx = cx - sl / 2;
@@ -273,10 +275,18 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
   const ink0 = (lit: boolean) => (lit ? "#d98a1e" : "#b8923f");
   flat.forEach((n) => {
     if (!n.kids.length) return;
-    const x1 = X(n);
+    const marks = new Set<number>();
+    const sl0 = slot(n);
+    const l0 = X(n) - (n.order.length * sl0) / 2 + sl0 / 2;
     const y1 = rowTop(n.depth) + (n.plate ? PLH + 2 : FH) + (n.lit && !n.plate ? 14 : 0);
     n.kids.forEach((k) => {
+      const si = parentSlot(n.p, n.order, k.p);
+      const x1 = si === null ? X(n) : l0 + si * sl0;
       const kx = X(k);
+      if (!marks.has(x1)) {
+        marks.add(x1);
+        lines += `<path d="M${fx(x1)} ${fx(y1 - 6)} l6 6 l-6 6 l-6 -6z" fill="url(#mgold)" stroke="#7a5412" stroke-width="1"/>`;
+      }
       const y2 = rowTop(k.depth) - 4;
       const ym = y1 + (y2 - y1) * 0.55;
       const d = `M${fx(x1)} ${fx(y1)} C${fx(x1)} ${fx(ym)}, ${fx(kx)} ${fx(y1 + (y2 - y1) * 0.45)}, ${fx(kx)} ${fx(y2)}`;
@@ -286,7 +296,6 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
       lines += `<path d="${d}" fill="none" stroke="#fff3c4" stroke-opacity=".7" stroke-width=".9" stroke-linecap="round" stroke-dasharray="1 5"/>`;
       lines += `<path d="M${fx(kx)} ${fx(y2 + 1)} l-4.5 -7 h9z" fill="${ink0(hot)}"/>`;
     });
-    lines += `<path d="M${fx(x1)} ${fx(y1 - 6)} l6 6 l-6 6 l-6 -6z" fill="url(#mgold)" stroke="#7a5412" stroke-width="1"/>`;
   });
 
   // ---------------------------------------------------------------- title, border

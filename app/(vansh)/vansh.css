@@ -911,6 +911,7 @@ a.abtn:hover { color: var(--cy); border-color: var(--cy); }
 .prof-bar h3 { margin: 0; }
 .lineage { overflow-x: auto; padding: .6rem 0; text-align: center; }
 .lineage svg { max-width: none; height: auto; display: inline-block; }
+.lineage.royal svg { width: 100%; min-width: 720px; max-width: 1100px; }
 .prof-h { margin: .6rem 0 0; }
 .desc-card h3 .mut { font-size: .82rem; font-weight: 400; }
 .desc-tools { display: flex; align-items: center; gap: .4rem; }
