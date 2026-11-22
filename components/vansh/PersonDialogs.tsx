@@ -2,7 +2,7 @@
 // Dialogs for adding / editing / deleting people and relations (ported from the original app.js: form, kidsForm,
 // spouseForm, parentForm, addMenu, inviteForm).
 import PhotoCrop, { type PhotoCropHandle } from "./PhotoCrop";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { VPerson, NewRequest, PersonDoc } from "@/lib/vansh/types";
 import { ORDER, ROLE_L } from "@/lib/vansh/graph";
 import {
@@ -11,6 +11,7 @@ import {
 import { MARITAL_OPTIONS, ageN, fbOk, np, oppositeGender, surnameOf, wifeNames, yr } from "@/lib/vansh/text";
 import { checkNewDocs, openDoc, uploadDocs } from "@/lib/vansh/docs";
 import { genNo, relMap } from "@/lib/vansh/relations";
+import { VIRTUAL_ME, withAnchor } from "@/lib/vansh/kinship";
 import { BRANCH_LEVELS, branchPrint } from "@/lib/vansh/branchPrint";
 import { loadPhotos } from "@/lib/vansh/exporters";
 import { DownloadPreview, useStampMaker } from "./DownloadPreview";
@@ -823,52 +824,113 @@ const ANCHOR_LABEL: [string, string][] = [
   ["husband", "पति"], ["wife", "पत्नी"], ["brother", "दाजु / भाइ"], ["sister", "दिदी / बहिनी"],
 ];
 
-/** Sets who the kinship terms are counted from. `userId` set = an admin choosing for another member. */
+/** "म [व्यक्ति] को [नाता] हुँ": who the kinship terms are counted from. A member's choice is sent to the admin; an admin's (own or for another member via `userId`) applies at once. */
 export function AnchorDialog({ userId, current, onDone }: { userId?: string; current?: { target_id: string; relation_type: string } | null; onDone?: () => void }) {
   const { db, g, perms, me, closeDialog, toast, boot } = useVansh();
+  const direct = !!userId || perms.isAdm;
   const cur = userId ? current : me?.custom_anchor;
-  const [rel, setRel] = useState(cur?.relation_type || "son");
+  const [rel, setRel] = useState(cur?.relation_type || "");
   const sx = useSx({ value: cur?.target_id, label: cur?.target_id ? g.byId[cur.target_id]?.name || "" : "" });
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [mine, setMine] = useState<{ status: string; target_name: string; relation_type: string } | null>(null);
+  useEffect(() => {
+    if (direct) return;
+    db.rpc("my_anchor_request").then(({ data }) => setMine((data as typeof mine) || null));
+  }, [db, direct]);
   const opts = personOptions(g, perms, (p) => {
     const f = p.father_id ? g.byId[p.father_id] : null;
     return (f ? " (बुबा: " + f.name + ")" : "") + (p.birth_bs ? " · " + String(p.birth_bs).slice(0, 4) : "");
   });
+  const target = sx.value ? g.byId[sx.value] : undefined;
+  const relT = ANCHOR_LABEL.find(([v]) => v === rel)?.[1];
+  const who = userId ? "यो सदस्य" : "म";
+  const verb = userId ? "हुनुहुन्छ" : "हुँ";
+
+  // what the choice means for the family: the "me" the kinship terms will be counted from
+  const result = useMemo(() => {
+    if (!target || !rel) return null;
+    const v = withAnchor(g.people, { position_person_id: null, position_parent_id: null, custom_anchor: { target_id: target.id, relation_type: rel } });
+    const list = v.people;
+    const by: Record<string, VPerson> = {};
+    list.forEach((x) => (by[x.id] = x));
+    const m = by[VIRTUAL_ME];
+    if (!m) return null;
+    const nm = (id?: string | null) => (id && by[id] ? perms.nm(by[id]) : "");
+    const sibs = list.filter((x) => x.id !== m.id && ((m.father_id && x.father_id === m.father_id) || (m.mother_id && x.mother_id === m.mother_id))).map((x) => perms.nm(x));
+    const kids = list.filter((x) => x.father_id === m.id || x.mother_id === m.id).map((x) => perms.nm(x));
+    return { father: nm(m.father_id), mother: nm(m.mother_id), spouse: nm(m.spouse_id), sibs, kids };
+  }, [g, target, rel, perms]);
+  const warn =
+    target && ((rel === "husband" && target.gender === "M") || (rel === "wife" && target.gender === "F"))
+      ? "सावधान: दुवै एउटै लिङ्गका देखिन्छन् — नाता फेरि जाँच्नुहोस्।"
+      : "";
   const save = async (clear: boolean) => {
-    if (!clear && !sx.value) return setErr("सूचीबाट व्यक्ति छान्नुहोस्।");
-    const args = clear ? { p_target: null, p_rel: null } : { p_target: sx.value, p_rel: rel };
-    const { error } = userId ? await db.rpc("admin_set_anchor", { p_user: userId, ...args }) : await db.rpc("set_my_anchor", args);
+    if (!clear && !sx.value) return setErr("पहिलो ठाउँमा सूचीबाट व्यक्ति छान्नुहोस्।");
+    if (!clear && !rel) return setErr("दोस्रो ठाउँमा नाता छान्नुहोस्।");
+    setBusy(true);
+    setErr("");
+    let error;
+    if (!clear && !direct) ({ error } = await db.rpc("request_anchor", { p_target: sx.value, p_rel: rel }));
+    else {
+      const args = clear ? { p_target: null, p_rel: null } : { p_target: sx.value, p_rel: rel };
+      ({ error } = userId ? await db.rpc("admin_set_anchor", { p_user: userId, ...args }) : await db.rpc("set_my_anchor", args));
+    }
+    setBusy(false);
     if (error) return setErr(error.message);
-    toast(clear ? "सन्दर्भ हटाइयो" : "✅ सन्दर्भ सुरक्षित भयो");
+    toast(clear ? "सन्दर्भ हटाइयो" : direct ? "✅ सन्दर्भ सुरक्षित भयो" : "✅ अनुरोध एडमिनलाई पठाइयो — स्वीकृत भएपछि लागू हुन्छ");
     closeDialog();
     if (!userId) await boot();
     onDone?.();
   };
   return (
-    <>
+    <div className="dlw">
       <h3>🧭 नाता गणनाको सन्दर्भ</h3>
       <p className="mut">
-        नाताका शब्द (काका, भतिजा, भिनाजु…) यहाँबाट गनिन्छन्। {userId ? "यो सदस्य" : "म"} वंशावलीमा कसैको छोरा/छोरी, पति/पत्नी, दाजुभाइ… हुँ भनेर जनाउनुहोस्। तोकिएको स्थान भए त्यो भन्दा यही सन्दर्भ पहिले प्रयोग हुन्छ।
+        नाताका शब्द (काका, भतिजा, भिनाजु…) यहाँबाट गनिन्छन्। खाली ठाउँ भर्नुहोस्।{direct ? "" : " तपाईंको छनोट एडमिनले स्वीकृत गरेपछि मात्र लागू हुन्छ।"}
       </p>
-      <label>
-        {userId ? "यो सदस्य" : "म"} यिनको…
-        <select value={rel} onChange={(e) => setRel(e.target.value)}>
+      {!direct && mine?.status === "pending" && (
+        <p className="msg" style={{ color: "#7d5a1e" }}>⏳ पर्खाइमा: “म {mine.target_name} को {ANCHOR_LABEL.find(([v]) => v === mine.relation_type)?.[1]} हुँ”। नयाँ अनुरोध पठाएमा यो बदलिन्छ।</p>
+      )}
+      {!direct && mine?.status === "rejected" && <p className="msg">पछिल्लो अनुरोध एडमिनले स्वीकार गरेनन्। ठीक नाता छानेर फेरि पठाउन सक्नुहुन्छ।</p>}
+      <div className="anc-sent">
+        <span>{who}</span>
+        <div className="anc-blank"><Sx st={sx} options={opts} /></div>
+        <span>को</span>
+        <select value={rel} onChange={(e) => setRel(e.target.value)} aria-label="नाता">
+          <option value="">— नाता छान्नुहोस् —</option>
           {ANCHOR_LABEL.map(([v, t]) => (
             <option key={v} value={v}>{t}</option>
           ))}
         </select>
-      </label>
-      <label>
-        हुँ — व्यक्ति
-        <Sx st={sx} options={opts} />
-      </label>
+        <span>{verb}।</span>
+      </div>
+      {target && relT ? (
+        <div className="anc-confirm">
+          <div className="anc-full">“{who} <b>{target.name}</b> को <b>{relT}</b> {verb}।”</div>
+          {result && (
+            <ul>
+              {result.father && <li>बुबा: {result.father}</li>}
+              {result.mother && <li>आमा: {result.mother}</li>}
+              {result.spouse && <li>जीवनसाथी: {result.spouse}</li>}
+              {result.sibs.length > 0 && <li>दाजुभाइ/दिदीबहिनी: {result.sibs.slice(0, 6).join(", ")}{result.sibs.length > 6 ? " …" : ""}</li>}
+              {result.kids.length > 0 && <li>सन्तान: {result.kids.slice(0, 6).join(", ")}{result.kids.length > 6 ? " …" : ""}</li>}
+            </ul>
+          )}
+          <p className="mut" style={{ margin: ".2rem 0 0" }}>माथिको वाक्य र विवरण सही छ भने मात्र पठाउनुहोस्।</p>
+          {warn && <p className="msg">{warn}</p>}
+        </div>
+      ) : (
+        <p className="mut">व्यक्ति र नाता दुवै छानेपछि पूरा वाक्य यहाँ देखिन्छ।</p>
+      )}
+      <p className="mut" style={{ fontSize: ".82rem" }}>यहाँ सीधा नाता मात्र छान्न मिल्छ (छोरा/छोरी, बुबा/आमा, पति/पत्नी, दाजुभाइ/दिदीबहिनी)। भतिजा, भान्जा, नाति आदि भए त्यसको सीधा अभिभावक वा दाजुभाइलाई छानेर आफ्नो नाता भन्नुहोस् — जस्तै भतिजा भए आफ्नो बुबालाई छानेर “छोरा”।</p>
       <div className="msg">{err}</div>
       <div className="row">
-        <button onClick={() => save(false)}>सुरक्षित गर्ने</button>
+        <button disabled={busy || !target || !rel} onClick={() => save(false)}>{direct ? "सुरक्षित गर्ने" : "एडमिनलाई पठाउने"}</button>
         {cur && <button className="bad" onClick={() => save(true)}>सन्दर्भ हटाउने</button>}
         <button className="ghost" onClick={closeDialog}>रद्द</button>
       </div>
-    </>
+    </div>
   );
 }
 

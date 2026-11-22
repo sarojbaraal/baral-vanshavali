@@ -971,3 +971,11 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .cd.hid { border-style: dashed; opacity: .72; }
 .cd.hid::before { content: "🙈"; position: absolute; right: 6px; bottom: 3px; font-size: .8rem; }
 .pp-l.hid { color: var(--mg); }
+
+/* नाता सन्दर्भ: "म [व्यक्ति] को [नाता] हुँ" */
+.anc-sent { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; font-size: 1.05rem; padding: .7rem .8rem; border: 1px dashed var(--gold, #b58a42); border-radius: 12px; background: #fffdf8; }
+.anc-sent .anc-blank { flex: 1 1 14rem; min-width: 12rem; }
+.anc-sent select { flex: 0 1 11rem; }
+.anc-confirm { padding: .7rem .9rem; border-radius: 12px; background: #f3f6ec; border: 1px solid #c9d6b5; }
+.anc-full { font-size: 1.08rem; line-height: 1.6; }
+.anc-confirm ul { margin: .4rem 0 0; padding-left: 1.2rem; font-size: .92rem; line-height: 1.6; }

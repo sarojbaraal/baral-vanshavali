@@ -10,7 +10,7 @@ import { Sx, personOptions, useSx } from "./ui";
 import { AcctDialog, AvatarsDialog } from "./AdminDialogs";
 import { AnchorDialog } from "./PersonDialogs";
 import ReviewPanel, { reviewCount } from "./ReviewPanel";
-import { PreviewAsPanel, ViewRequestsPanel } from "./ViewAccess";
+import { AnchorRequestsPanel, PreviewAsPanel, ViewRequestsPanel } from "./ViewAccess";
 import { reviewIssues } from "@/lib/vansh/review";
 
 function Req({ r, byId }: { r: ChangeRequest; byId: Record<string, VPerson> }) {
@@ -204,7 +204,9 @@ export function AdminView() {
   const [sec, setSec] = useState<Sec>("req");
   const [reqCat, setReqCat] = useState("all");
   const [histOpen, setHistOpen] = useState<string[]>([]);
-  const [viewN, setViewN] = useState(0);
+  const [viewN0, setViewN] = useState(0);
+  const [ancN, setAncN] = useState(0);
+  const viewN = viewN0 + ancN;
   const [msgs, setMsgs] = useState<SiteMsg[]>([]);
   const [data, setData] = useState<{ reqs: ChangeRequest[]; users: VProfile[]; hist: ChangeRequest[] } | null>(null);
 
@@ -219,6 +221,8 @@ export function AdminView() {
     if (adm) {
       const { data: vr } = await db.rpc("admin_view_requests");
       setViewN(((vr as { status: string }[]) || []).filter((r) => r.status === "pending").length);
+      const { data: ar } = await db.rpc("admin_anchor_requests");
+      setAncN(((ar as unknown[]) || []).length);
       const { data: ms } = await db.rpc("list_messages");
       setMsgs((ms as SiteMsg[]) || []);
     }
@@ -365,7 +369,12 @@ export function AdminView() {
   } else if (cur === "rev") {
     body = <ReviewPanel />;
   } else if (cur === "view") {
-    body = <ViewRequestsPanel onCount={setViewN} />;
+    body = (
+      <>
+        <AnchorRequestsPanel onCount={setAncN} />
+        <ViewRequestsPanel onCount={setViewN} />
+      </>
+    );
   } else if (cur === "as") {
     body = <PreviewAsPanel />;
   } else if (cur === "msg") {

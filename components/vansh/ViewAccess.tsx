@@ -29,6 +29,50 @@ export function ViewRequestDialog({ personId }: { personId: string }) {
   );
 }
 
+interface AReq { id: string; relation_type: string; user_name: string; target_name: string; target_father: string | null }
+const REL_T: Record<string, string> = { son: "छोरा", daughter: "छोरी", father: "बुबा", mother: "आमा", husband: "पति", wife: "पत्नी", brother: "दाजु / भाइ", sister: "दिदी / बहिनी" };
+
+/** Admin: "म … को … हुँ" requests (नाता सन्दर्भ) waiting for approval. */
+export function AnchorRequestsPanel({ onCount }: { onCount?: (n: number) => void }) {
+  const { db, toast } = useVansh();
+  const [rows, setRows] = useState<AReq[] | null>(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    db.rpc("admin_anchor_requests").then(({ data, error }) => {
+      if (!live) return;
+      if (error) return alert(error.message);
+      const list = (data as AReq[]) || [];
+      setRows(list);
+      onCount?.(list.length);
+    });
+    return () => {
+      live = false;
+    };
+  }, [db, onCount, tick]);
+  const load = () => setTick((n) => n + 1);
+  const review = async (id: string, ok: boolean) => {
+    const { error } = await db.rpc("review_anchor_request", { p_id: id, p_approve: ok });
+    if (error) return alert(error.message);
+    toast(ok ? "✅ नाता सन्दर्भ स्वीकृत भयो" : "अनुरोध अस्वीकार गरियो");
+    load();
+  };
+  if (!rows?.length) return null;
+  return (
+    <>
+      {rows.map((r) => (
+        <div className="card" key={r.id}>
+          🧭 <b>{r.user_name}</b>: “म <b>{r.target_name}</b>{r.target_father ? ` (बुबा: ${r.target_father})` : ""} को <b>{REL_T[r.relation_type] || r.relation_type}</b> हुँ”
+          <div className="row">
+            <button onClick={() => review(r.id, true)}>स्वीकृत गर्ने</button>
+            <button className="bad" onClick={() => review(r.id, false)}>अस्वीकार</button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 interface VReq {
   id: string; status: string; reason: string | null; created_at: string;
   user_id: string; user_name: string; person_id: string; person_name: string;
