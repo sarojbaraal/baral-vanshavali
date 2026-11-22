@@ -8,6 +8,8 @@ import { generateBio } from "@/lib/vansh/aiSummary";
 import { chartGoto } from "@/lib/vansh/chartGoto";
 import { lineageSvg } from "@/lib/vansh/lineage";
 import { descendantsSvg } from "@/lib/vansh/descendants";
+import { fanSvg } from "@/lib/vansh/fan";
+import { jpgBlob, stamp as today10, svgBlob } from "@/lib/vansh/exporters";
 import { lifeSheetHtml, openLifeSheet } from "@/lib/vansh/lifesheet";
 import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
@@ -19,9 +21,10 @@ import { Avatar } from "./ui";
 import { MineView } from "./RequestViews";
 import { AnchorDialog, PersonForm } from "./PersonDialogs";
 import { useTodayLabel } from "./HeroAi";
+import { DownloadPreview, useStampMaker, type Prepared } from "./DownloadPreview";
 
 export default function ProfileView() {
-  const { db, me, g, gPrint, perms, toast, reload, openDialog, setTab, pick } = useVansh();
+  const { db, me, g, gPrint, perms, toast, reload, openDialog, closeDialog, setTab, pick } = useVansh();
   const today = useTodayLabel();
   const p = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
   const [busy, setBusy] = useState(false);
@@ -32,6 +35,9 @@ export default function ProfileView() {
   const chart = useMemo(() => (p ? lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }) : null), [g, p, perms.nm]);
 
   const desc = useMemo(() => (p ? descendantsSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
+  const fan = useMemo(() => (p ? fanSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
+  const mkStamp = useStampMaker();
+  const [fanBusy, setFanBusy] = useState("");
 
   // first view: the whole chart fits the screen (never larger than 80%)
   const descW = desc?.width || 0;
@@ -107,6 +113,24 @@ export default function ProfileView() {
     a.download = "vanshavistar.svg";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  // the fan chart as a finished poster (title, legend, usage notice and signature): preview first, then save
+  const saveFan = async (kind: "jpg" | "svg") => {
+    const pp = gPrint.byId[p.id];
+    if (!pp) return toast("⚠ लुकाइएको सदस्यको चार्ट डाउनलोड हुँदैन");
+    setFanBusy(kind);
+    try {
+      const st = await mkStamp(`fan|${pp.id}|${kind}`);
+      const out = fanSvg(gPrint, pp, { nm: perms.nm, stamp: st });
+      db.rpc("log_print", { p_scope: `fan-${kind}|${perms.act}|${out.known}` }).then(() => {}, () => {});
+      const blob = kind === "jpg" ? await jpgBlob(out.svg, out.width - 40, out.height - 40) : svgBlob(out.svg);
+      const data: Prepared = { blob, fileName: `purkha-chakra-${today10()}.${kind}`, images: [{ src: URL.createObjectURL(blob) }], note: `${np(out.known)} पुर्खा · हस्ताक्षर ID ${st.id}` };
+      openDialog(<DownloadPreview data={data} onCancel={closeDialog} />);
+    } catch (e) {
+      toast("⚠ " + ((e as Error).message || "चित्र बनाउन सकिएन"));
+    } finally {
+      setFanBusy("");
+    }
   };
   const seeInTree = () => {
     chartGoto.id = p.id;
@@ -230,6 +254,22 @@ export default function ProfileView() {
             <div className="desc" style={{ width: desc.width * zoom }} dangerouslySetInnerHTML={{ __html: desc.svg }} />
           </div>
           <p className="mut">सुनौलो बाटोले तपाईंसम्मको वंश-क्रम देखाउँछ। दायाँ-बायाँ सार्न स्क्रोल गर्नुहोस्, सानो/ठूलो गर्न + − थिच्नुहोस्।</p>
+        </section>
+      )}
+
+      {fan && fan.known > 0 && (
+        <section className="card fan-card">
+          <div className="prof-bar">
+            <h3>पुर्खा-चक्र <span className="mut">· ५ पुस्तासम्मका पुर्खा</span></h3>
+            {perms.act !== "general" && (
+              <div className="desc-tools">
+                <button className="ghost" disabled={!!fanBusy} onClick={() => saveFan("jpg")}>{fanBusy === "jpg" ? "बन्दैछ…" : "🖼 पोस्टर (JPG)"}</button>
+                <button className="ghost" disabled={!!fanBusy} onClick={() => saveFan("svg")}>{fanBusy === "svg" ? "बन्दैछ…" : "⬇ SVG"}</button>
+              </div>
+            )}
+          </div>
+          <div className="fan-wrap" dangerouslySetInnerHTML={{ __html: fan.svg }} />
+          <p className="mut">बायाँ भाग बुबाको पक्ष, दायाँ भाग आमाको पक्ष। भित्रबाट बाहिर एक-एक पुस्ता माथि जान्छ; खाली ठाउँ अहिलेसम्म दर्ता नभएका पुर्खा हुन्।</p>
         </section>
       )}
 
