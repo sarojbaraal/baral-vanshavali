@@ -208,12 +208,12 @@ Deno.serve(async (req: Request) => {
       if (!UUID.test(pid)) return json({ error: "person_id अमान्य छ।" }, 400);
       if (!isAdmin && prof?.position_person_id !== pid) return json({ error: "आफ्नै प्रोफाइलको कथा मात्र बनाउन सकिन्छ।" }, 403);
       const { data: p } = await db.from("people").select("*").eq("id", pid).maybeSingle();
-      if (!p) return json({ error: "व्यक्ति फेला परेन।" }, 404);
+      if (!p || p.hidden) return json({ error: "व्यक्ति फेला परेन।" }, 404);
       if (!isAdmin && p.ai_summary_self_at && Date.now() - new Date(p.ai_summary_self_at).getTime() < 6 * 3600e3)
         return json({ error: "केही घण्टापछि मात्र फेरि बनाउन सकिन्छ।" }, 429);
       const nm = async (id: string | null) =>
-        (id ? (await db.from("people").select("name").eq("id", id).maybeSingle()).data?.name : null) || "अज्ञात";
-      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`);
+        (id ? (await db.from("people").select("name").eq("id", id).eq("hidden", false).maybeSingle()).data?.name : null) || "अज्ञात";
+      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`).eq("hidden", false);
       const out = await gemini(
         key,
         {
@@ -241,19 +241,19 @@ Deno.serve(async (req: Request) => {
       if (!UUID.test(pid)) return json({ error: "person_id अमान्य छ।" }, 400);
       if (!isAdmin && prof?.position_person_id !== pid) return json({ error: "आफ्नै जीवनी मात्र बनाउन सकिन्छ।" }, 403);
       const { data: p } = await db.from("people").select("*").eq("id", pid).maybeSingle();
-      if (!p) return json({ error: "व्यक्ति फेला परेन।" }, 404);
+      if (!p || p.hidden) return json({ error: "व्यक्ति फेला परेन।" }, 404);
       if (!isAdmin && p.bio_at && Date.now() - new Date(p.bio_at).getTime() < 6 * 3600e3)
         return json({ error: "केही घण्टापछि मात्र फेरि बनाउन सकिन्छ।" }, 429);
       const ids = [p.father_id, p.mother_id, p.spouse_id, ...(p.more_spouse_ids || [])].filter(Boolean);
-      const { data: near } = ids.length ? await db.from("people").select("id,name,father_id,mother_id").in("id", ids) : { data: [] };
+      const { data: near } = ids.length ? await db.from("people").select("id,name,father_id,mother_id").in("id", ids).eq("hidden", false) : { data: [] };
       const byId: Record<string, { id: string; name: string; father_id: string | null; mother_id: string | null }> = {};
       (near || []).forEach((x: { id: string; name: string; father_id: string | null; mother_id: string | null }) => (byId[x.id] = x));
       const gids = [byId[p.father_id]?.father_id, byId[p.father_id]?.mother_id, byId[p.mother_id]?.father_id, byId[p.mother_id]?.mother_id].filter(Boolean);
-      const { data: gp } = gids.length ? await db.from("people").select("id,name").in("id", gids) : { data: [] };
+      const { data: gp } = gids.length ? await db.from("people").select("id,name").in("id", gids).eq("hidden", false) : { data: [] };
       const gname = (id: string | null | undefined) => (gp || []).find((x: { id: string }) => x.id === id)?.name || "";
-      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`);
+      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`).eq("hidden", false);
       const sib = p.father_id || p.mother_id
-        ? (await db.from("people").select("id,name,father_id,mother_id").or([p.father_id && `father_id.eq.${p.father_id}`, p.mother_id && `mother_id.eq.${p.mother_id}`].filter(Boolean).join(","))).data || []
+        ? (await db.from("people").select("id,name,father_id,mother_id").or([p.father_id && `father_id.eq.${p.father_id}`, p.mother_id && `mother_id.eq.${p.mother_id}`].filter(Boolean).join(",")).eq("hidden", false)).data || []
         : [];
       const fa = byId[p.father_id], mo = byId[p.mother_id];
       const baral = (p.gender === "F" ? lastWord(fa?.name) : lastWord(p.name)) === "बराल";
@@ -294,10 +294,10 @@ Deno.serve(async (req: Request) => {
     if (body?.person_id) {
       if (!UUID.test(String(body.person_id))) return json({ error: "person_id अमान्य छ।" }, 400);
       const { data: p } = await db.from("people").select("*").eq("id", body.person_id).maybeSingle();
-      if (!p) return json({ error: "व्यक्ति फेला परेन।" }, 404);
+      if (!p || p.hidden) return json({ error: "व्यक्ति फेला परेन।" }, 404);
       const name = async (id: string | null) =>
-        (id ? (await db.from("people").select("name").eq("id", id).maybeSingle()).data?.name : null) || "अज्ञात";
-      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`);
+        (id ? (await db.from("people").select("name").eq("id", id).eq("hidden", false).maybeSingle()).data?.name : null) || "अज्ञात";
+      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`).eq("hidden", false);
       const out = await gemini(key, {
         name: p.name, gender: p.gender, is_living: p.is_living, birth_bs: p.birth_bs, death_bs: p.death_bs,
         birth_place: p.birth_place || p.address, notes: p.notes,

@@ -48,16 +48,16 @@ Deno.serve(async (req: Request) => {
     let client: SMTPClient | null = null;
     let sent = 0;
     for (const pr of profs) {
-      const { data: meRow } = await db.from("people").select("*").eq("id", pr.position_person_id).maybeSingle();
+      const { data: meRow } = await db.from("people").select("*").eq("id", pr.position_person_id).eq("hidden", false).maybeSingle();
       const me = meRow as P | null;
       if (!me) continue;
       const near = new Map<string, P>([[me.id, me]]);
       const add = (rows: unknown) => ((rows as P[]) || []).forEach((r) => near.set(r.id, r));
       const ids = [me.father_id, me.mother_id, me.spouse_id, ...(me.more_spouse_ids || [])].filter(Boolean) as string[];
-      if (ids.length) add((await db.from("people").select("*").in("id", ids)).data);
-      add((await db.from("people").select("*").or(`father_id.eq.${me.id},mother_id.eq.${me.id}`)).data);
+      if (ids.length) add((await db.from("people").select("*").in("id", ids).eq("hidden", false)).data);
+      add((await db.from("people").select("*").or(`father_id.eq.${me.id},mother_id.eq.${me.id}`).eq("hidden", false)).data);
       const sib = [me.father_id && `father_id.eq.${me.father_id}`, me.mother_id && `mother_id.eq.${me.mother_id}`].filter(Boolean).join(",");
-      if (sib) add((await db.from("people").select("*").or(sib)).data);
+      if (sib) add((await db.from("people").select("*").or(sib).eq("hidden", false)).data);
 
       const lines: { key: string; pid: string; kind: string; on: string; text: string }[] = [];
       days.forEach((dd, i) => {

@@ -11,7 +11,7 @@ import { ageN, dispName, fbOk, maritalLabel, np, yr } from "@/lib/vansh/text";
 import { openDoc } from "@/lib/vansh/docs";
 import { useVansh } from "./VanshContext";
 import { Avatar, KidCount } from "./ui";
-import { AddMenu, DeleteDialog, InviteDialog, PersonForm } from "./PersonDialogs";
+import { AddMenu, DeleteDialog, HideDialog, InviteDialog, PersonForm } from "./PersonDialogs";
 
 function Box({ c, ic, l, children, mg }: { c: string; ic: string; l: string; children?: React.ReactNode; mg?: boolean }) {
   if (!children) return null;
@@ -209,6 +209,7 @@ export default function DetailPanel({
           </div>
           <div className="pp-info">
             <h3>{dispName(p)}</h3>
+            {p.hidden && <div className="pp-l hid">🙈 लुकाइएको — एडमिनले मात्र देख्छ; छाप्दा/डाउनलोडमा आउँदैन</div>}
             {rl && <div className="pp-l">💠 {rl === "तपाईं" ? "तपाईं" : "तपाईंको " + rl}</div>}
             {ord && <div className="pp-l">🔢 {ord} {p.gender === "F" ? "छोरी" : "छोरा"}</div>}
             <div className="pp-l">
@@ -245,6 +246,11 @@ export default function DetailPanel({
                   <button role="menuitem" onClick={goProfile}>🪪 प्रोफाइल</button>
                   {onPrint && <button role="menuitem" onClick={() => { setMore(false); onPrint(p.id); }}>🖨️ प्रिन्ट</button>}
                   {ce && isAdm && <button role="menuitem" onClick={() => { setMore(false); openDialog(<InviteDialog p={p} />); }}>🔗 निम्तो लिंक</button>}
+                  {isAdm && (
+                    <button role="menuitem" onClick={() => { setMore(false); openDialog(<HideDialog p={p} />); }}>
+                      {p.hidden ? "👁 फेरि देखाउने" : "🙈 लुकाउने"}
+                    </button>
+                  )}
                   {ce && (
                     <button role="menuitem" className="bad" onClick={() => { setMore(false); openDialog(<DeleteDialog p={p} />); }}>
                       {isAdm ? "🗑 हटाउने" : "🗑 हटाउने अनुरोध"}

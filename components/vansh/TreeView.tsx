@@ -446,7 +446,7 @@ export default function TreeView() {
             return (
               <div
                 key={p.id}
-                className={`cd g${p.gender || "O"} ${p.is_living ? "" : "dead"} ${hlId === p.id ? "sel" : ""} ${ok ? "" : "locked"} ${p.id === me?.position_person_id ? "mine" : ""}${hl ? on(hl.has(p.id)) : ""}`}
+                className={`cd g${p.gender || "O"} ${p.is_living ? "" : "dead"} ${hlId === p.id ? "sel" : ""} ${ok ? "" : "locked"} ${p.id === me?.position_person_id ? "mine" : ""}${p.hidden ? " hid" : ""}${hl ? on(hl.has(p.id)) : ""}`}
                 tabIndex={0}
                 data-id={p.id}
                 style={{ left: x, top: y, width: CW, height: CH, ["--gc" as string]: GEN[d % GEN.length] }}

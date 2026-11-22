@@ -27,7 +27,8 @@ function Opt({ icon, title, info, children, disabled }: { icon: string; title: s
 }
 
 export function DownloadDialog() {
-  const { g: gAll, me, db, perms, myPosId, closeDialog, openDialog, toast } = useVansh();
+  // everything printed or downloaded here is built from the graph without hidden people
+  const { gPrint: gAll, me, db, perms, myPosId, closeDialog, openDialog, toast } = useVansh();
   const { can, nm, isAdm, isStaff } = perms;
   // one basis for printing: बंशज print what lies below their own grandfather; moderators and admin print what they can see
   const g = useMemo(() => {
@@ -197,7 +198,7 @@ function TemplatePreview({ parse, isAdm, onResolve }: { parse: TemplateParse; is
 
 /** Template download / upload for everyone; full backup and legacy file import for admin. */
 export function ImportExportDialog() {
-  const { db, g, me, perms, people, myPosId, openDialog, closeDialog, reload, submit, toast } = useVansh();
+  const { db, g, gPrint, me, perms, people, myPosId, openDialog, closeDialog, reload, submit, toast } = useVansh();
   const { can, isStaff, isAdm } = perms;
   const fileRef = useRef<HTMLInputElement>(null);
   const tplRef = useRef<HTMLInputElement>(null);
@@ -290,9 +291,9 @@ export function ImportExportDialog() {
           <div className="dlo-h"><b>३. एडमिन: पूर्ण ब्याकअप / पुरानो ढाँचाको आयात</b></div>
           <p className="mut">आयात गर्नुअघि JSON ब्याकअप लिनुहोस्। फाइलमा नभएका व्यक्ति हटाइँदैनन्; पूर्वावलोकनमा फरक देखिन्छ।</p>
           <div className="row">
-            <button className="ghost" onClick={() => exportXLSX(g).catch((e) => alert(e.message))}>📊 पूर्ण Excel</button>
-            <button className="ghost" onClick={() => exportCSV(g)}>📄 CSV</button>
-            <button className="ghost" onClick={() => exportJSON(people)}>💾 JSON</button>
+            <button className="ghost" onClick={() => exportXLSX(gPrint).catch((e) => alert(e.message))}>📊 पूर्ण Excel</button>
+            <button className="ghost" onClick={() => exportCSV(gPrint)}>📄 CSV</button>
+            <button className="ghost" onClick={() => exportJSON(people)} title="एडमिनको पूर्ण ब्याकअप — लुकाइएका सदस्य पनि समावेश">💾 JSON ब्याकअप</button>
             <button className="ghost" onClick={() => fileRef.current?.click()}>📥 पुरानो फाइल अपलोड</button>
             <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) doImport(f); e.target.value = ""; }} />
           </div>
