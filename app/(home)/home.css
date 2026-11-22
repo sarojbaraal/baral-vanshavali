@@ -209,7 +209,7 @@ body { margin: 0; background: #f5f0e6; }
 
 /* ---------- member hero: their own small tree on a framed sheet ---------- */
 .mh { align-items: center; padding-bottom: clamp(2.4rem, 6vw, 5rem); grid-template-columns: minmax(0, 1fr) minmax(0, .8fr); }
-.hero-tree { max-width: 520px; justify-self: center; width: 100%; }
+.hero-tree { max-width: 560px; justify-self: center; width: 100%; }
 .mh .hero-copy { padding-bottom: 0; }
 .mh h1 { font-size: clamp(2.6rem, 7vw, 5rem); }
 .mh-line { font: 500 1.05rem/1.6 var(--c-serif); color: var(--c-gold-ink); margin: 0 0 1rem; }
@@ -223,7 +223,11 @@ body { margin: 0; background: #f5f0e6; }
   linear-gradient(160deg, #fbf8f1, #efe6d2);
   box-shadow: 0 0 0 1px rgba(181, 138, 66, .55), 0 0 0 7px #f5f0e6, 0 0 0 8px rgba(181, 138, 66, .45), 0 18px 40px -14px rgba(49, 61, 36, .35); }
 .ht-sheet::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgba(181, 138, 66, .35); border-radius: 3px; pointer-events: none; }
-.ht-sheet svg { display: block; width: 100%; max-width: 430px; height: auto; margin: 0 auto; }
+.ht-sheet svg { display: block; width: 100%; max-width: 480px; height: auto; margin: 0 auto; }
+.ht-sheet .ta-leaves { transform-origin: 50% 70%; animation: ta-sway 9s ease-in-out infinite alternate; }
+.ht-sheet .ta-near { animation-duration: 7s; }
+@keyframes ta-sway { from { transform: rotate(-.5deg); } to { transform: rotate(.6deg); } }
+@media (prefers-reduced-motion: reduce) { .ht-sheet .ta-leaves { animation: none; } }
 .hero-tree figcaption { margin-top: 1.1rem; display: flex; justify-content: space-between; gap: .8rem; flex-wrap: wrap; font-size: .88rem; color: var(--c-mut); }
 @media (max-width: 900px) { .mh { grid-template-columns: minmax(0, 1fr); padding-bottom: 3rem; gap: 2rem; } .hero-tree { max-width: 440px; } }
 
