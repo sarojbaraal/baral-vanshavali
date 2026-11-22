@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AUTH_HINT_SCRIPT } from "@/lib/vansh/authHint";
 import "./home.css";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://baraltree.vercel.app";
@@ -21,8 +22,9 @@ export const viewport: Viewport = { themeColor: "#313d24", width: "device-width"
 
 export default function HomeLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ne">
+    <html lang="ne" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: AUTH_HINT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}

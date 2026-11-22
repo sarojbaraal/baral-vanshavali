@@ -86,3 +86,8 @@
 @media (max-width: 760px) {
   .sf-in { grid-template-columns: 1fr; }
 }
+
+/* a signed-in member must not see the signed-out page while the session is read (lib/vansh/authHint.ts) */
+html[data-auth="1"] .sn-wait .sn-menu, html[data-auth="1"] .sn-wait .sn-end { visibility: hidden; }
+html[data-auth="1"] .mh-wait { visibility: hidden; }
+html[data-auth="1"] [data-pub] { display: none; }

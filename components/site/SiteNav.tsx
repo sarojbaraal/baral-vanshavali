@@ -5,6 +5,7 @@ import "./site.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { clearAuthHint } from "@/lib/vansh/authHint";
 import { createClient } from "@/utils/supabase/client";
 import { myRoles, ROLE_L } from "@/lib/vansh/graph";
 import type { VProfile } from "@/lib/vansh/types";
@@ -192,8 +193,11 @@ export default function SiteNav({
   active,
   account,
   onTab,
+  pending,
 }: {
   active: NavKey;
+  /** the app is still reading the session: show the bar without guest or member items */
+  pending?: boolean;
   /** in the app: the account (null = signed out); on public pages leave undefined and it is looked up */
   account?: AccountInfo | null;
   onTab?: (t: AppTab) => void;
@@ -202,9 +206,13 @@ export default function SiteNav({
   const pub = usePublicAccount(account === undefined);
   const acc = account === undefined ? pub : account;
   const items = acc ? (acc.staff ? [...IN, ADMIN] : IN) : OUT;
+  const wait = !!pending || (account === undefined && pub === undefined);
+  useEffect(() => {
+    if (!pending && (account === null || pub === null)) clearAuthHint();
+  }, [account, pub, pending]);
 
   return (
-    <div className="sn" role="banner">
+    <div className={`sn${wait ? " sn-wait" : ""}`} role="banner">
       <a className="sn-skip" href="#main">मुख्य सामग्रीमा जानुहोस्</a>
       <div className="sn-in">
         <Link href="/" className="sn-brand" aria-label="बराल वंशावली — गृहपृष्ठ">
