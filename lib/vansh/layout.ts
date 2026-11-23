@@ -204,7 +204,23 @@ function buildTrees(g: Graph): TreeNode[] {
     .filter((p) => !hasParents(p) && !isMarriedIn(p))
     .sort(byBirth)
     .map((p) => buildNode(g, p, seen, 0));
-  people.filter((p) => !seen.has(p.id)).forEach((p) => trees.push(buildNode(g, p, seen, 0)));
+  // Anyone not reached from a root (a link the roots above could not follow): start from their topmost known ancestor,
+  // never from a descendant. Re-checked one by one, so nobody is drawn a second time and no branch is cut off from its elders.
+  const top = (p: VPerson): VPerson => {
+    const path = new Set<string>([p.id]);
+    let cur = p;
+    for (;;) {
+      const up = [cur.father_id, cur.mother_id].map((i) => (i ? g.byId[i] : undefined)).find((q): q is VPerson => !!q && !path.has(q.id) && !AWAY.has(q.id));
+      if (!up) return cur;
+      path.add(up.id);
+      cur = up;
+    }
+  };
+  people.forEach((p) => {
+    if (seen.has(p.id)) return;
+    const t = top(p);
+    trees.push(buildNode(g, seen.has(t.id) ? p : t, seen, 0));
+  });
   AWAY = new Set();
   return trees;
 }

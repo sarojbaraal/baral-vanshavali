@@ -1,7 +1,7 @@
 "use client";
 // "प्रोफाईल": the signed-in person's own page — facts, biography (AI-written from recorded facts, editable),
 // the lineage from the grandfather, the common family facts, and a printable life-sheet.
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { BASIS, IDENTITY } from "@/lib/vansh/intro";
 import { generateBio } from "@/lib/vansh/aiSummary";
@@ -9,7 +9,8 @@ import { chartGoto } from "@/lib/vansh/chartGoto";
 import { lineageSvg } from "@/lib/vansh/lineage";
 import { descendantsSvg } from "@/lib/vansh/descendants";
 import { fanSvg } from "@/lib/vansh/fan";
-import { jpgBlob, stamp as today10, svgBlob } from "@/lib/vansh/exporters";
+import { loadPhotos, pdfBlob, stamp as today10, svgBlob } from "@/lib/vansh/exporters";
+import { getSiteAvatars, subscribeSiteAvatars, type SiteAvatars } from "@/lib/vansh/avatars";
 import { lifeSheetHtml, openLifeSheet } from "@/lib/vansh/lifesheet";
 import { muralSvg } from "@/lib/vansh/mural";
 import { isBaralByBirth } from "@/lib/vansh/gotra";
@@ -23,6 +24,7 @@ import { MineView } from "./RequestViews";
 import { AnchorDialog, PersonForm } from "./PersonDialogs";
 import { useTodayLabel } from "./HeroAi";
 import { DownloadPreview, useStampMaker, type Prepared } from "./DownloadPreview";
+import { ChartMenu, ZoomPill } from "./ChartMenu";
 
 export default function ProfileView() {
   const { db, me, g, gPrint, perms, toast, reload, openDialog, closeDialog, setTab, pick } = useVansh();
@@ -33,11 +35,12 @@ export default function ProfileView() {
   const [draft, setDraft] = useState("");
   const [zoom, setZoom] = useState(0.8);
 
+  const site = useSyncExternalStore(subscribeSiteAvatars, getSiteAvatars, () => ({}) as SiteAvatars);
   const chart = useMemo(() => (p ? lineageSvg(g, p, { selfLabel: "म", nm: perms.nm }) : null), [g, p, perms.nm]);
 
-  const royal = useMemo(() => (p ? muralSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
-  const desc = useMemo(() => (p ? descendantsSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
-  const fan = useMemo(() => (p ? fanSvg(g, p, { nm: perms.nm }) : null), [g, p, perms.nm]);
+  const royal = useMemo(() => (p ? muralSvg(g, p, { nm: perms.nm, avatars: site }) : null), [g, p, perms.nm, site]);
+  const desc = useMemo(() => (p ? descendantsSvg(g, p, { nm: perms.nm, avatars: site }) : null), [g, p, perms.nm, site]);
+  const fan = useMemo(() => (p ? fanSvg(g, p, { nm: perms.nm, avatars: site }) : null), [g, p, perms.nm, site]);
   const mkStamp = useStampMaker();
   const [fanBusy, setFanBusy] = useState("");
 
@@ -70,13 +73,21 @@ export default function ProfileView() {
   const write = async () => {
     setBusy(true);
     try {
-      await generateBio(db, p.id);
+      const asDraft = await generateBio(db, p.id);
       await reload();
-      toast("✅ जीवनी तयार भयो");
+      toast(asDraft ? "✅ तपाईंको जीवनी जस्ताको तस्तै छ — नयाँ मस्यौदा तल राखिएको छ" : "✅ जीवनी तयार भयो");
     } catch (e) {
       toast("⚠ " + (e as Error).message);
     }
     setBusy(false);
+  };
+  const resolveDraft = async (action: "append" | "replace" | "discard") => {
+    setBusy(true);
+    const { error } = await db.rpc("resolve_bio_draft", { p_person: p.id, p_action: action });
+    setBusy(false);
+    if (error) return toast("⚠ " + error.message);
+    await reload();
+    toast(action === "discard" ? "मस्यौदा हटाइयो" : "✅ जीवनी अद्यावधिक भयो");
   };
   const saveDraft = async () => {
     setBusy(true);
@@ -91,10 +102,10 @@ export default function ProfileView() {
     // printed from the graph without hidden people: a hidden relative is not named anywhere on the sheet
     const pp = gPrint.byId[p.id];
     if (p.hidden || !pp) return toast("⚠ लुकाइएको सदस्यको पाना छापिँदैन");
-    const mural = muralSvg(gPrint, pp, { nm: perms.nm });
+    const mural = muralSvg(gPrint, pp, { nm: perms.nm, avatars: site });
     const html = lifeSheetHtml({
       name: perms.nm(pp),
-      photoUrl: pp.photo_url,
+      photoUrl: pp.photo_url || (pp.gender === "F" ? site.F : site.M),
       initial: Array.from(pp.name.trim())[0] || "•",
       line: fatherLine(gPrint, pp, perms.nm),
       facts: profileFacts(gPrint, pp, { showEmail: true, nm: perms.nm }),
@@ -107,28 +118,28 @@ export default function ProfileView() {
     });
     if (!openLifeSheet(html)) toast("⚠ नयाँ विन्डो खुल्न दिइएन; ब्राउजरमा पप-अप अनुमति दिनुहोस्");
   };
-  const saveDesc = () => {
+  // every chart download: the site's default avatar (or the person's photo) is embedded, so the file stands alone;
+  // PDF / SVG only, previewed before saving, with the usage notice and signature on the poster-type charts
+  const saveChart = async (kind: "royal" | "desc" | "fan", fmt: "pdf" | "svg") => {
     const pp = gPrint.byId[p.id];
     if (!pp) return toast("⚠ लुकाइएको सदस्यको चार्ट डाउनलोड हुँदैन");
-    const out = descendantsSvg(gPrint, pp, { nm: perms.nm });
-    const url = URL.createObjectURL(new Blob([out.svg], { type: "image/svg+xml" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "vanshavistar.svg";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  // the fan chart as a finished poster (title, legend, usage notice and signature): preview first, then save
-  const saveFan = async (kind: "jpg" | "svg") => {
-    const pp = gPrint.byId[p.id];
-    if (!pp) return toast("⚠ लुकाइएको सदस्यको चार्ट डाउनलोड हुँदैन");
+    if (perms.act === "general") return toast("⚠ डाउनलोडको अनुमति छैन");
     setFanBusy(kind);
     try {
-      const st = await mkStamp(`fan|${pp.id}|${kind}`);
-      const out = fanSvg(gPrint, pp, { nm: perms.nm, stamp: st });
-      db.rpc("log_print", { p_scope: `fan-${kind}|${perms.act}|${out.known}` }).then(() => {}, () => {});
-      const blob = kind === "jpg" ? await jpgBlob(out.svg, out.width - 40, out.height - 40) : svgBlob(out.svg);
-      const data: Prepared = { blob, fileName: `purkha-chakra-${today10()}.${kind}`, images: [{ src: URL.createObjectURL(blob) }], note: `${np(out.known)} पुर्खा · हस्ताक्षर ID ${st.id}` };
+      const st = await mkStamp(`${kind}|${pp.id}|${fmt}`);
+      const photos = await loadPhotos(gPrint.people.filter((x) => x.photo_url), perms.can);
+      const o = { nm: perms.nm, photos, avatars: site };
+      const out = kind === "royal" ? muralSvg(gPrint, pp, { ...o, stamp: st }) : kind === "desc" ? descendantsSvg(gPrint, pp, o) : fanSvg(gPrint, pp, { ...o, stamp: st });
+      const n = "ids" in out ? out.ids.length : "count" in out ? out.count : out.known;
+      db.rpc("log_print", { p_scope: `${kind}-${fmt}|${perms.act}|${n}` }).then(() => {}, () => {});
+      const blob = fmt === "pdf" ? await pdfBlob(out.svg, out.width, out.height) : svgBlob(out.svg);
+      const names = { royal: "vanshavriksha", desc: "vanshavistar", fan: "purkha-chakra" } as const;
+      const data: Prepared = {
+        blob,
+        fileName: `${names[kind]}-${today10()}.${fmt}`,
+        images: [{ src: URL.createObjectURL(svgBlob(out.svg)) }],
+        note: `${np(n)} सदस्य · हस्ताक्षर ID ${st.id}`,
+      };
       openDialog(<DownloadPreview data={data} onCancel={closeDialog} />);
     } catch (e) {
       toast("⚠ " + ((e as Error).message || "चित्र बनाउन सकिएन"));
@@ -177,8 +188,20 @@ export default function ProfileView() {
             <>
               <div className="bio">{p.bio.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
               <p className="mut bio-src">
-                {p.bio_ai ? "🤖 रेकर्डमा भएका तथ्यबाट AI ले लेखेको। गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको।"}
+                {p.bio_ai ? "🤖 रेकर्डमा भएका तथ्यबाट AI ले लेखेको। गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको। AI ले यसलाई कहिल्यै मेटाउँदैन।"}
+                {!p.bio_ai && (p.bio_facts?.length ?? 0) > 0 && ` AI ले यसबाट ${p.bio_facts!.length} तथ्य सिकेको छ र अर्को मस्यौदामा प्रयोग गर्छ।`}
               </p>
+              {p.bio_draft && (
+                <div className="bio-draft">
+                  <b>🤖 AI को नयाँ मस्यौदा</b>
+                  <div className="bio">{p.bio_draft.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
+                  <div className="row">
+                    <button disabled={busy} onClick={() => resolveDraft("append")}>आफ्नो जीवनीमा थप्ने</button>
+                    <button className="ghost" disabled={busy} onClick={() => resolveDraft("replace")}>यसैले बदल्ने</button>
+                    <button className="ghost" disabled={busy} onClick={() => resolveDraft("discard")}>हटाउने</button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <p className="mut">
@@ -187,7 +210,7 @@ export default function ProfileView() {
           )}
           {!editing && (
             <div className="row">
-              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? "🤖 AI बाट फेरि लेख्ने" : "🤖 AI बाट जीवनी लेख्ने"}</button>
+              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? (p.bio_ai ? "🤖 AI बाट फेरि लेख्ने" : "🤖 AI को मस्यौदा बनाउने") : "🤖 AI बाट जीवनी लेख्ने"}</button>
               <button className="ghost" onClick={() => { setDraft(p.bio || ""); setEditing(true); }}>{p.bio ? "आफैँ सच्याउने" : "आफैँ लेख्ने"}</button>
             </div>
           )}
@@ -217,7 +240,7 @@ export default function ProfileView() {
       <section className="card">
         <div className="prof-bar">
           <h3>हजुरबुबादेखिको वंशवृक्ष</h3>
-          <button className="ghost" onClick={print}>🖨 कलात्मक पाना छाप्ने</button>
+          {perms.act !== "general" && royal && royal.ids.length > 1 && <ChartMenu busy={fanBusy === "royal" ? "royal" : ""} onPick={(f) => saveChart("royal", f)} />}
         </div>
         {royal && royal.ids.length > 1 ? (
           <div className="lineage royal" dangerouslySetInnerHTML={{ __html: royal.svg }} />
@@ -251,17 +274,15 @@ export default function ProfileView() {
         <section className="card desc-card">
           <div className="prof-bar">
             <h3>वंश-विस्तार <span className="mut">· {desc.root.id === p.id ? "तपाईंदेखि तल" : "हजुरबुबादेखि तलका सबै सदस्य"}</span></h3>
-            <div className="desc-tools" role="group" aria-label="चार्ट आकार">
-              <button className="ghost" aria-label="सानो" onClick={() => setZoom((z) => Math.max(0.35, +(z - 0.15).toFixed(2)))}>−</button>
-              <span>{np(Math.round(zoom * 100))}%</span>
-              <button className="ghost" aria-label="ठूलो" onClick={() => setZoom((z) => Math.min(1.6, +(z + 0.15).toFixed(2)))}>+</button>
-              <button className="ghost" onClick={saveDesc}>⬇ SVG</button>
-            </div>
+            <span className="chart-tools">
+              <ZoomPill zoom={zoom} set={setZoom} />
+              {perms.act !== "general" && <ChartMenu busy={fanBusy === "desc" ? "desc" : ""} onPick={(f) => saveChart("desc", f)} />}
+            </span>
           </div>
           <div className="desc-wrap">
             <div className="desc" style={{ width: desc.width * zoom }} dangerouslySetInnerHTML={{ __html: desc.svg }} />
           </div>
-          <p className="mut">सुनौलो बाटोले तपाईंसम्मको वंश-क्रम देखाउँछ। दायाँ-बायाँ सार्न स्क्रोल गर्नुहोस्, सानो/ठूलो गर्न + − थिच्नुहोस्।</p>
+          <p className="mut">सुनौलो बाटोले तपाईंसम्मको वंश-क्रम देखाउँछ। दायाँ-बायाँ सार्न स्क्रोल गर्नुहोस्, सानो/ठूलो गर्न + − थिच्नुहोस्; ⬇ बाट PDF वा SVG लिन सकिन्छ।</p>
         </section>
       )}
 
@@ -269,12 +290,7 @@ export default function ProfileView() {
         <section className="card fan-card">
           <div className="prof-bar">
             <h3>पुर्खा-चक्र <span className="mut">· ५ पुस्तासम्मका पुर्खा</span></h3>
-            {perms.act !== "general" && (
-              <div className="desc-tools">
-                <button className="ghost" disabled={!!fanBusy} onClick={() => saveFan("jpg")}>{fanBusy === "jpg" ? "बन्दैछ…" : "🖼 पोस्टर (JPG)"}</button>
-                <button className="ghost" disabled={!!fanBusy} onClick={() => saveFan("svg")}>{fanBusy === "svg" ? "बन्दैछ…" : "⬇ SVG"}</button>
-              </div>
-            )}
+            {perms.act !== "general" && <ChartMenu busy={fanBusy === "fan" ? "fan" : ""} onPick={(f) => saveChart("fan", f)} />}
           </div>
           <div className="fan-wrap" dangerouslySetInnerHTML={{ __html: fan.svg }} />
           <p className="mut">बायाँ भाग बुबाको पक्ष, दायाँ भाग आमाको पक्ष। भित्रबाट बाहिर एक-एक पुस्ता माथि जान्छ; खाली ठाउँ अहिलेसम्म दर्ता नभएका पुर्खा हुन्।</p>

@@ -266,3 +266,64 @@ export function jpgBlob(svg: string, W: number, H: number, extraH = 0): Promise<
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   });
 }
+
+/**
+ * A one-page PDF of the SVG, sized to the drawing (A4 portrait when the drawing is 1 : √2). The page holds the picture drawn at
+ * print quality (long side about 3400 px); no library is needed: a PDF page may carry a JPEG as it is.
+ */
+export async function pdfBlob(svg: string, W: number, H: number): Promise<Blob> {
+  const sc = Math.min(3400 / Math.max(W, H), 4);
+  const cw = Math.round(W * sc);
+  const ch = Math.round(H * sc);
+  const jpeg: Uint8Array = await new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement("canvas");
+      cv.width = cw;
+      cv.height = ch;
+      const c = cv.getContext("2d");
+      if (!c) return rej(new Error("canvas"));
+      c.fillStyle = "#fff";
+      c.fillRect(0, 0, cw, ch);
+      c.drawImage(img, 0, 0, cw, ch);
+      cv.toBlob((b) => (b ? b.arrayBuffer().then((a) => res(new Uint8Array(a)), rej) : rej(new Error("blob"))), "image/jpeg", 0.93);
+    };
+    img.onerror = () => rej(new Error("PDF बनाउन सकिएन; SVG प्रयोग गर्नुहोस्।"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+  // page in PDF points: the long side is A4's (842 / 595) when the drawing is portrait/landscape
+  const long = Math.abs(H / W - Math.SQRT2) < 0.03 || Math.abs(W / H - Math.SQRT2) < 0.03 ? 841.89 : 842;
+  const pw = W >= H ? long : (long * W) / H;
+  const ph = W >= H ? (long * H) / W : long;
+  const enc = new TextEncoder();
+  const parts: Uint8Array[] = [];
+  const offs: number[] = [];
+  let len = 0;
+  const push = (b: Uint8Array | string) => {
+    const u = typeof b === "string" ? enc.encode(b) : b;
+    parts.push(u);
+    len += u.length;
+  };
+  const obj = (n: number, body: string | (() => void)) => {
+    offs[n] = len;
+    push(`${n} 0 obj\n`);
+    if (typeof body === "string") push(body);
+    else body();
+    push("\nendobj\n");
+  };
+  const content = `q ${pw.toFixed(2)} 0 0 ${ph.toFixed(2)} 0 0 cm /Im0 Do Q`;
+  push("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw.toFixed(2)} ${ph.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+  obj(4, () => {
+    push(`<< /Type /XObject /Subtype /Image /Width ${cw} /Height ${ch} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+    push(jpeg);
+    push("\nendstream");
+  });
+  obj(5, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+  const xref = len;
+  push(`xref\n0 6\n0000000000 65535 f \n${[1, 2, 3, 4, 5].map((n) => String(offs[n]).padStart(10, "0") + " 00000 n \n").join("")}`);
+  push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts as BlobPart[], { type: "application/pdf" });
+}

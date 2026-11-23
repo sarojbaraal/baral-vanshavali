@@ -242,18 +242,21 @@ main#app.wide { max-width: none; padding: 1rem 12px 1.4rem; }
 .chartwrap { position: relative; }
 .chartwrap:fullscreen { padding: .6rem; background: var(--bg); }
 .tools {
-  position: relative; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .7rem; padding: .55rem .65rem;
+  position: relative; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-bottom: .7rem; padding: .55rem .65rem;
   background: var(--surface); border: 1px solid var(--line-2); border-radius: 18px;
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
 }
-.tools .qw { flex: 1 1 240px; min-width: 200px; display: flex; align-items: center; gap: .6rem; }
+.tools .qw { flex: 0 1 190px; min-width: 130px; display: flex; align-items: center; gap: .4rem; }
+.tools .qi input { min-height: 38px; padding-top: .3rem; padding-bottom: .3rem; font-size: .86rem; }
+.tools #qc { display: none; }
 .tools .qi { position: relative; flex: 1; display: block; }
 .tools .qi input { padding-right: 2.6rem; }
 .tools .qx { right: 5px; }
 #qc { font-size: .8rem; white-space: nowrap; }
 .tools button { min-height: 38px; padding: .3rem .85rem; font-size: .86rem; }
 .tools > button[aria-label] { width: 38px; padding: 0; font-size: 1.1rem; }
-.tools #zr { width: 62px; padding: .35rem .4rem; text-align: center; font-weight: 700; min-height: 38px; }
+.tools .zp { margin-left: -.25rem; }
+.tools #zr { width: 54px; padding: .35rem .4rem; text-align: center; font-weight: 700; min-height: 38px; }
 .tools .qr { top: calc(100% + 8px); }
 details.menu { position: relative; }
 details.menu summary {
@@ -949,11 +952,18 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .seg.sm button { min-height: 34px; padding: .2rem .8rem; font-size: .88rem; }
 .seg.sm button:disabled { opacity: .5; }
 
-/* semantic zoom: #stage[data-lod] is set from the zoom level (lib/vansh/lod.ts) */
-#stage[data-lod="mid"] .cd { backdrop-filter: none; -webkit-backdrop-filter: none; justify-content: center; padding-inline: .5rem; }
-#stage[data-lod="mid"] .gn, #stage[data-lod="mid"] .tx span { display: none; }
-#stage[data-lod="mid"] .av { width: 52px; height: 52px; border-radius: 14px; }
-#stage[data-lod="mid"] .tx b { font-size: 1.45rem; font-weight: 600; }
+/* semantic zoom: #stage[data-lod] (far / name / face / near) is set from the zoom level (lib/vansh/lod.ts) */
+.tx .fn { display: none; font-style: normal; }
+/* 10–30 %: name only (the font grows as the chart shrinks, capped so two lines fit the card) */
+#stage[data-lod="name"] .cd { backdrop-filter: none; -webkit-backdrop-filter: none; justify-content: center; padding-inline: .4rem; }
+#stage[data-lod="name"] .av, #stage[data-lod="name"] .gn, #stage[data-lod="name"] .tx span { display: none; }
+#stage[data-lod="name"] .tx { text-align: center; width: 100%; }
+#stage[data-lod="name"] .tx b { font-size: min(calc(11px * var(--ik, 4)), 27px); font-weight: 600; line-height: 1.12; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* 30–50 %: photo and first name */
+#stage[data-lod="face"] .cd { backdrop-filter: none; -webkit-backdrop-filter: none; padding-inline: .5rem; }
+#stage[data-lod="face"] .gn, #stage[data-lod="face"] .tx span, #stage[data-lod="face"] .tx b { display: none; }
+#stage[data-lod="face"] .av { width: 52px; height: 52px; border-radius: 14px; }
+#stage[data-lod="face"] .tx .fn { display: block; font-size: min(calc(11px * var(--ik, 2.5)), 26px); font-weight: 600; font-family: var(--f-disp); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #stage[data-lod="far"] .cd { background: var(--gc, var(--cy)); border-color: transparent; border-radius: 12px; backdrop-filter: none; -webkit-backdrop-filter: none; transition: none; }
 #stage[data-lod="far"] .cd > * { visibility: hidden; }
 #stage[data-lod="far"] .cd.gF { background: color-mix(in srgb, var(--gc, var(--cy)) 78%, #a4506a); }
@@ -984,3 +994,22 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 /* पुर्खा-चक्र */
 .fan-wrap { border-radius: 18px; overflow: hidden; margin: .6rem 0; box-shadow: 0 8px 30px rgba(74, 54, 29, .2), 0 0 0 1px rgba(181, 138, 66, .45); background: #fbf6ea; }
 .fan-wrap svg { display: block; width: 100%; height: auto; }
+
+/* chart cards: one small download menu and a small zoom pill instead of rows of big buttons */
+.cmenu { position: relative; display: inline-block; }
+.cmenu > summary { list-style: none; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; line-height: 1; color: #6e4f14; background: #fbf3dd; border: 1px solid #d9c18a; user-select: none; }
+.cmenu > summary::-webkit-details-marker { display: none; }
+.cmenu > summary:hover, .cmenu[open] > summary { background: #f3e2ad; }
+.cmenu-pop { position: absolute; right: 0; top: 38px; z-index: 20; display: flex; flex-direction: column; min-width: 96px; padding: 4px; background: #fffdf8; border: 1px solid #d9c18a; border-radius: 10px; box-shadow: 0 8px 22px rgba(60, 45, 15, .18); }
+.cmenu-pop button { all: unset; cursor: pointer; padding: 7px 12px; border-radius: 7px; font-size: 13.5px; color: #3b2d16; text-align: left; }
+.cmenu-pop button:hover { background: #f6ebc8; }
+.cmenu-pop button:disabled { opacity: .5; cursor: default; }
+.chart-tools { display: inline-flex; align-items: center; gap: 8px; }
+.zpill { display: inline-flex; align-items: center; height: 32px; border: 1px solid #d9c18a; border-radius: 16px; background: #fbf3dd; overflow: hidden; }
+.zpill button { all: unset; cursor: pointer; width: 28px; height: 30px; text-align: center; font-size: 16px; line-height: 30px; color: #6e4f14; }
+.zpill button:hover { background: #f3e2ad; }
+.zpill output { min-width: 40px; text-align: center; font-size: 12.5px; color: #3b2d16; }
+
+/* AI biography draft shown under a self-written biography */
+.bio-draft{margin-top:12px;padding:10px 12px;border:1px dashed #c9a227;border-radius:10px;background:#fffbea}
+.bio-draft .bio{margin:6px 0}

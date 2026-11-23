@@ -8,6 +8,8 @@
 //     except the viewer's own line (the road down to them, their spouse and children), which always keeps its frames.
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
+import { BRAND, NOTICE, wrapChars, type Stamp } from "./notice";
+import { faceSrc, type FaceOpts } from "./face";
 import { descendantsRoot, familyOrder, parentSlot, sortKids } from "./descendants";
 import { np, yr } from "./text";
 
@@ -22,10 +24,12 @@ export interface Mural {
   root: VPerson;
 }
 
-export interface MuralOpts {
+export interface MuralOpts extends FaceOpts {
   nm?: (p: VPerson) => string;
   /** widest row (in drawing units) before the brothers' children shrink to plates */
   limit?: number;
+  /** a download: adds the usage notice and signature along the bottom edge */
+  stamp?: Stamp;
 }
 
 const FW = 132; // slot of a framed person
@@ -53,6 +57,12 @@ interface N {
   lit: boolean;
   w: number;
   x: number;
+  /** children without children of their own wrap into rows of this many (0 = one row) */
+  grid: number;
+  /** one of more than eight siblings: a very big family, shown as plates (unless it is the viewer's own line) */
+  big: boolean;
+  /** which wrapped row of its parent's block this person sits in */
+  row: number;
 }
 
 export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
@@ -71,7 +81,7 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     spouses.forEach((s) => seen.add(s.id));
     const order = familyOrder(p, spouses);
     const kids = family && depth < MAXD ? sortKids(p, order, g.kidsOf(p).filter((k) => !seen.has(k.id)).sort(g.byBirth)).map((k) => build(k, depth + 1)) : [];
-    return { p, spouses, order, kids, depth, plate: false, keep: false, lit: false, w: 0, x: 0 };
+    return { p, spouses, order, kids, depth, plate: false, keep: false, lit: false, w: 0, x: 0, grid: 0, big: false, row: 0 };
   };
   const tree = build(root, 0);
 
@@ -85,50 +95,101 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
   };
   mark(tree);
   // the viewer's brothers and sisters (children of anyone on the road) keep their frames too
+  const all0 = (n: N, out: N[] = []): N[] => (out.push(n), n.kids.forEach((k) => all0(k, out)), out);
   const kin = (n: N): void => {
     if (n.lit) n.kids.forEach((k) => (k.keep = true));
     n.kids.forEach(kin);
   };
   kin(tree);
 
+  all0(tree).forEach((n) => n.kids.length > 8 && n.kids.forEach((k) => (k.big = true)));
   const slot = (n: N) => (n.plate ? PW : FW);
+  const all = (n: N, out: N[] = []): N[] => (out.push(n), n.kids.forEach((k) => all(k, out)), out);
+  const pitch = (n: N) => (n.plate ? PLH + 22 : FH + 26); // vertical step of a wrapped row
+  let wrapC = 99;
+  const kidUnit = (n: N) => Math.max(...n.kids.map((k) => k.w));
   const measure = (n: N): void => {
     n.kids.forEach(measure);
     const own = (1 + n.spouses.length) * slot(n);
-    n.w = Math.max(own, n.kids.reduce((s, k) => s + k.w, 0));
+    n.grid = n.kids.length > wrapC && n.kids.every((k) => !k.kids.length) ? wrapC : 0;
+    const below = n.grid ? n.grid * kidUnit(n) : n.kids.reduce((s, k) => s + k.w, 0);
+    n.w = Math.max(own, below);
   };
-  const all = (n: N, out: N[] = []): N[] => (out.push(n), n.kids.forEach((k) => all(k, out)), out);
-  measure(tree);
-  // a very big family: shrink the children of the brothers, deepest generation first
-  const limit = o.limit ?? 1000;
-  for (let d = MAXD; d >= 2 && tree.w > limit; d--) {
-    all(tree).filter((n) => n.depth === d && !n.keep).forEach((n) => (n.plate = true));
-    measure(tree);
-  }
-
   const place = (n: N, left: number) => {
     n.x = left + n.w / 2;
+    if (n.grid) {
+      const u = kidUnit(n);
+      n.kids.forEach((k, i) => {
+        const r = Math.floor(i / n.grid);
+        const inRow = Math.min(n.grid, n.kids.length - r * n.grid);
+        const l0 = left + (n.w - inRow * u) / 2;
+        k.row = r;
+        k.x = l0 + (i % n.grid) * u + u / 2;
+      });
+      return;
+    }
     let c = left + (n.w - n.kids.reduce((s, k) => s + k.w, 0)) / 2;
     n.kids.forEach((k) => {
       place(k, c);
       c += k.w;
     });
   };
-  place(tree, 0);
 
+  // The chart is made for an A4 portrait sheet (1 : √2). First try to keep everyone framed; if the tree is too wide for the
+  // page, wrap the childless children into rows, then shrink the brothers' children to plates, until the shape fits.
   const flat = all(tree);
   const maxDepth = Math.max(...flat.map((n) => n.depth));
-  const width = Math.max(tree.w + PAD * 2, 760);
+  const RATIO = Math.SQRT2;
+  const extraAt = (): number[] => {
+    const ex = Array<number>(maxDepth + 2).fill(0);
+    flat.forEach((n) => {
+      if (n.row) ex[n.depth] = Math.max(ex[n.depth], n.row * pitch(n));
+    });
+    return ex;
+  };
+  const apply = (stage: number, c: number) => {
+    flat.forEach((n) => {
+      n.plate = n.depth >= 2 && !n.keep && ((n.big && n.depth >= 2) || (stage >= 1 && n.depth === MAXD) || (stage >= 2 && n.depth === 2));
+      n.row = 0;
+    });
+    wrapC = c;
+    measure(tree);
+    place(tree, 0);
+  };
+  const capacity = () => TOP0 + maxDepth * (ROWH + 150) + FH + 110 + extraAt().reduce((s, v) => s + v, 0);
+  const fits = () => (tree.w + PAD * 2) * RATIO <= capacity() + 60;
+  const target = o.limit ?? Infinity;
+  let done = false;
+  for (const stage of [0, 1, 2]) {
+    for (const c of [99, 12, 10, 8, 7, 6, 5, 4, 3]) {
+      apply(stage, c);
+      if (fits() && tree.w <= target) {
+        done = true;
+        break;
+      }
+    }
+    if (done) break;
+  }
+  if (!done) apply(2, 3);
+
+  const ex = extraAt();
+  const footLines0 = o.stamp ? wrapChars(NOTICE, Math.floor(Math.max(tree.w + PAD * 2, 760) / 7)).length + 1 : 0;
+  const footH = footLines0 ? footLines0 * 15 + 22 : 0;
+  const natural = TOP0 + maxDepth * ROWH + FH + 110 + footH + ex.reduce((s, v) => s + v, 0);
+  const width = Math.max(tree.w + PAD * 2, 760, natural / RATIO);
+  const height = Math.round(width * RATIO);
   const sx = (width - tree.w) / 2;
   const X = (n: N) => n.x + sx;
   const CX = width / 2;
-  // a small family still fills the portrait page: the rows spread apart (up to a point)
-  const natural = TOP0 + maxDepth * ROWH + FH + 110;
-  const rowH = ROWH + Math.max(0, Math.min(150, (width * 1.28 - natural) / Math.max(1, maxDepth)));
-  const rowTop = (d: number) => TOP0 + d * rowH;
-  const lastBottom = rowTop(maxDepth) + FH;
-  const G = lastBottom + 60;
-  const height = G + 50;
+  // spare height spreads the generations apart (up to a point); what is left over centres the family on the sheet
+  const spread = Math.min(150, Math.max(0, (height - natural) / Math.max(1, maxDepth)));
+  const rowH = ROWH + spread;
+  const oy = Math.max(0, (height - natural - spread * maxDepth) / 2);
+  const rowTop = (d: number) => TOP0 + oy + d * rowH + ex.slice(0, d).reduce((s, v) => s + v, 0);
+  const yOf = (n: N) => rowTop(n.depth) + n.row * pitch(n);
+  // where a person's frame stands inside the family block, and where a branch should meet them (the blood relative, not the couple's middle)
+  const rowLeft = (n: N) => X(n) - (n.order.length * slot(n)) / 2 + slot(n) / 2;
+  const bloodX = (n: N) => rowLeft(n) + n.order.indexOf(n.p) * slot(n);
 
   // ---------------------------------------------------------------- paper, border, title
   const fx = (v: number) => v.toFixed(1);
@@ -161,9 +222,10 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     return [cut(w.slice(0, -1).join(" "), n1), cut(w[w.length - 1], n2)];
   };
   const photo = (p: VPerson, i: number, cx: number, cy: number, r: number, female: boolean) => {
-    if (p.photo_url && !p.is_locked) {
+    const src = faceSrc(p, o);
+    if (src) {
       defs += `<clipPath id="mf${i}"><circle cx="${fx(cx)}" cy="${fx(cy)}" r="${r}"/></clipPath>`;
-      return `<image href="${esc(p.photo_url)}" x="${fx(cx - r)}" y="${fx(cy - r)}" width="${r * 2}" height="${r * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#mf${i})"/>`;
+      return `<circle cx="${fx(cx)}" cy="${fx(cy)}" r="${r}" fill="${female ? "#f4e3e8" : "#e6ecdf"}"/><image href="${esc(src)}" x="${fx(cx - r)}" y="${fx(cy - r)}" width="${r * 2}" height="${r * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#mf${i})"/>`;
     }
     return `<circle cx="${fx(cx)}" cy="${fx(cy)}" r="${r}" fill="${female ? "url(#mrose)" : "url(#mpine)"}"/><text x="${fx(cx)}" y="${fx(cy + r * 0.36)}" text-anchor="middle" font-size="${Math.round(r * 1.05)}" font-weight="700" fill="#fdf3d2" ${FONT}>${esc(Array.from(nm(p).trim())[0] || "•")}</text>`;
   };
@@ -173,12 +235,11 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
       .map(([x, y, sx, sy]) => `<path d="M${fx(x + sx * 3)} ${fx(y + sy * 14)} q0 -11 11 -11 M${fx(x + sx * 7)} ${fx(y + sy * 7)} l${sx * 3} ${sy * 3}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/><circle cx="${fx(x + sx * 5)}" cy="${fx(y + sy * 5)}" r="2.3" fill="${col}"/>`)
       .join("");
 
-  const drawPerson = (p: VPerson, cx: number, d: number, plate: boolean, lit: boolean, focus: boolean) => {
+  const drawPerson = (p: VPerson, cx: number, d: number, top: number, plate: boolean, lit: boolean, focus: boolean) => {
     const i = idx++;
     ids.push(p.id);
     const gone = p.is_living === false;
     const female = p.gender === "F";
-    const top = rowTop(d);
     const metal = gone ? BRONZE : GOLD;
     const edge = gone ? "#3a2412" : "#7a5412";
     const bandFill = gone ? "url(#mwine)" : "url(#memer)";
@@ -258,11 +319,11 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     const lft = X(n) - (people.length * sl) / 2 + sl / 2;
     people.forEach((p, i) => {
       const cx = lft + i * sl;
-      drawPerson(p, cx, n.depth, n.plate, n.lit && p.id === n.p.id, p.id === me.id);
+      drawPerson(p, cx, n.depth, yOf(n), n.plate, n.lit && p.id === n.p.id, p.id === me.id);
       if (i > 0 && !n.plate) {
         // a couple: a gold seal with a heart between the two frames
         const hx = cx - sl / 2;
-        const hy = rowTop(n.depth) + (n.depth === 0 ? 54 : 56);
+        const hy = yOf(n) + (n.depth === 0 ? 54 : 56);
         seals +=
           `<circle cx="${fx(hx)}" cy="${fx(hy)}" r="13" fill="url(#mgold)" stroke="#7a5412" stroke-width="1.3"/>` +
           `<path d="M${fx(hx)} ${fx(hy + 7)} c-9 -6 -10 -12 -4 -13 c2.5 -.4 4 1.2 4 3.2 c0 -2 1.5 -3.6 4 -3.2 c6 1 5 7 -4 13z" fill="#a8243c" stroke="#fff1bd" stroke-width=".9"/>`;
@@ -278,16 +339,16 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     const marks = new Set<number>();
     const sl0 = slot(n);
     const l0 = X(n) - (n.order.length * sl0) / 2 + sl0 / 2;
-    const y1 = rowTop(n.depth) + (n.plate ? PLH + 2 : FH) + (n.lit && !n.plate ? 14 : 0);
+    const y1 = yOf(n) + (n.plate ? PLH + 2 : FH) + (n.lit && !n.plate ? 14 : 0);
     n.kids.forEach((k) => {
       const si = parentSlot(n.p, n.order, k.p);
       const x1 = si === null ? X(n) : l0 + si * sl0;
-      const kx = X(k);
+      const kx = bloodX(k);
       if (!marks.has(x1)) {
         marks.add(x1);
         lines += `<path d="M${fx(x1)} ${fx(y1 - 6)} l6 6 l-6 6 l-6 -6z" fill="url(#mgold)" stroke="#7a5412" stroke-width="1"/>`;
       }
-      const y2 = rowTop(k.depth) - 4;
+      const y2 = yOf(k) - 4;
       const ym = y1 + (y2 - y1) * 0.55;
       const d = `M${fx(x1)} ${fx(y1)} C${fx(x1)} ${fx(ym)}, ${fx(kx)} ${fx(y1 + (y2 - y1) * 0.45)}, ${fx(kx)} ${fx(y2)}`;
       const hot = n.lit && k.lit;
@@ -305,6 +366,12 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
     `<path d="M${CX} 97 l9 9 l-9 9 l-9 -9z" fill="url(#mgold)" stroke="#7a5412" stroke-width="1"/>` +
     `<circle cx="${CX - 160}" cy="106" r="3" fill="#b58a42"/><circle cx="${CX + 160}" cy="106" r="3" fill="#b58a42"/>` +
     `<text x="${CX}" y="140" text-anchor="middle" font-size="19" fill="#6e4f14" ${FONT}>${esc(cut(nm(root), 24))} देखि तलका सन्तति</text>`;
+  const foot = (() => {
+    if (!o.stamp) return "";
+    const ls = [...wrapChars(NOTICE, Math.floor(width / 7)), o.stamp.line];
+    const y0 = height - 36 - (ls.length - 1) * 15;
+    return `<line x1="48" y1="${y0 - 16}" x2="${width - 48}" y2="${y0 - 16}" stroke="#c9a45c"/>` + ls.map((l, i) => `<text x="52" y="${y0 + i * 15}" font-size="11" fill="#5b4a2a" ${FONT}>${esc(l)}</text>`).join("");
+  })();
   const b1 = 14;
   const b2 = 24;
   const border =
@@ -330,9 +397,10 @@ export function muralSvg(g: Graph, me: VPerson, o: MuralOpts = {}): Mural {
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${esc(nm(root))} देखिको वंशवृक्ष">` +
+    (o.stamp ? `<metadata>${esc(BRAND + " | " + o.stamp.line)}</metadata>` : "") +
     dsDefs +
     `<rect width="${width}" height="${height}" fill="url(#mwall)"/><rect width="${width}" height="${height}" fill="url(#mdam)"/><rect width="${width}" height="${height}" fill="url(#mvig)"/>` +
-    border + title + lines + hang + seals +
+    border + title + lines + hang + seals + foot +
     `</svg>`;
   return { svg, width, height, ids, frames: nFrames, plates: nPlates, root };
 }

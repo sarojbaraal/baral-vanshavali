@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { AUTH_HINT_SCRIPT } from "@/lib/vansh/authHint";
 import "./home.css";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://baraltree.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://vanshavali.sarojbaral.com.np";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
