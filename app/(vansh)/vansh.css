@@ -984,3 +984,18 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 /* पुर्खा-चक्र */
 .fan-wrap { border-radius: 18px; overflow: hidden; margin: .6rem 0; box-shadow: 0 8px 30px rgba(74, 54, 29, .2), 0 0 0 1px rgba(181, 138, 66, .45); background: #fbf6ea; }
 .fan-wrap svg { display: block; width: 100%; height: auto; }
+
+/* chart cards: one small download menu and a small zoom pill instead of rows of big buttons */
+.cmenu { position: relative; display: inline-block; }
+.cmenu > summary { list-style: none; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; line-height: 1; color: #6e4f14; background: #fbf3dd; border: 1px solid #d9c18a; user-select: none; }
+.cmenu > summary::-webkit-details-marker { display: none; }
+.cmenu > summary:hover, .cmenu[open] > summary { background: #f3e2ad; }
+.cmenu-pop { position: absolute; right: 0; top: 38px; z-index: 20; display: flex; flex-direction: column; min-width: 96px; padding: 4px; background: #fffdf8; border: 1px solid #d9c18a; border-radius: 10px; box-shadow: 0 8px 22px rgba(60, 45, 15, .18); }
+.cmenu-pop button { all: unset; cursor: pointer; padding: 7px 12px; border-radius: 7px; font-size: 13.5px; color: #3b2d16; text-align: left; }
+.cmenu-pop button:hover { background: #f6ebc8; }
+.cmenu-pop button:disabled { opacity: .5; cursor: default; }
+.chart-tools { display: inline-flex; align-items: center; gap: 8px; }
+.zpill { display: inline-flex; align-items: center; height: 32px; border: 1px solid #d9c18a; border-radius: 16px; background: #fbf3dd; overflow: hidden; }
+.zpill button { all: unset; cursor: pointer; width: 28px; height: 30px; text-align: center; font-size: 16px; line-height: 30px; color: #6e4f14; }
+.zpill button:hover { background: #f3e2ad; }
+.zpill output { min-width: 40px; text-align: center; font-size: 12.5px; color: #3b2d16; }

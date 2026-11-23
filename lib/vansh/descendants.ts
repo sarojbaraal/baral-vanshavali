@@ -1,6 +1,7 @@
 // "वंश-विस्तार": every descendant of the grandfather (the father's father; the father, or the person themself when
 // the record stops earlier), drawn as an SVG on light warm paper with curved wooden branches, leaves, generation
 // bands and a faint mandala behind the root. The path from the root to the viewer is lit in saffron.
+import { faceSrc, type FaceOpts } from "./face";
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
 import { np, yr } from "./text";
@@ -15,7 +16,7 @@ export interface Descendants {
   root: VPerson;
 }
 
-export interface DescOpts {
+export interface DescOpts extends FaceOpts {
   nm?: (p: VPerson) => string;
 }
 
@@ -158,7 +159,7 @@ export function descendantsSvg(g: Graph, me: VPerson, o: DescOpts = {}): Descend
     u.kids.forEach((k) => {
       const si = parentSlot(u.p, u.order, k.p);
       const x1 = si === null ? X(u) : pxs[si];
-      const x2 = X(k);
+      const x2 = rowXs(k)[k.order.indexOf(k.p)]; // the branch meets the child by blood, never the in-law beside them
       const y2 = k.y - R - 6;
       const d = `M${x1} ${y1} C${x1} ${y1 + (y2 - y1) * 0.62}, ${x2} ${y1 + (y2 - y1) * 0.38}, ${x2} ${y2}`;
       const w = Math.max(2, 5.4 - u.depth * 0.8);
@@ -186,15 +187,16 @@ export function descendantsSvg(g: Graph, me: VPerson, o: DescOpts = {}): Descend
   let idx = 0;
   const halo = (t: string, x: number, y: number, size: number, weight: number, fill: string) =>
     `<text x="${x}" y="${y}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${fill}" stroke="#fffdf8" stroke-width="4" stroke-linejoin="round" paint-order="stroke" ${FONT}>${esc(t)}</text>`;
-  const medal = (p: VPerson, x: number, y: number, o2: { focus: boolean; lit: boolean; rootNode: boolean }) => {
+  const medal = (p: VPerson, x: number, y: number, o2: { focus: boolean; lit: boolean; rootNode: boolean; role?: string }) => {
     const i = idx++;
     const accent = p.gender === "F" ? "#a4506a" : p.gender === "M" ? "#44563a" : "#6b6a5c";
     const gone = p.is_living === false;
     const ring = o2.focus ? "#d98a1e" : o2.lit ? "#e0a037" : p.gender === "F" ? "#c98099" : p.gender === "M" ? "#7f9a5a" : "#c9a45c";
     let face: string;
-    if (p.photo_url && !p.is_locked) {
+    const src = faceSrc(p, o);
+    if (src) {
       defs += `<clipPath id="dm${i}"><circle cx="${x}" cy="${y}" r="${R}"/></clipPath>`;
-      face = `<image href="${esc(p.photo_url)}" x="${x - R}" y="${y - R}" width="${R * 2}" height="${R * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#dm${i})"${gone ? ' opacity=".85"' : ""}/>`;
+      face = `<circle cx="${x}" cy="${y}" r="${R}" fill="${p.gender === "F" ? "#f4e3e8" : "#e6ecdf"}"/><image href="${esc(src)}" x="${x - R}" y="${y - R}" width="${R * 2}" height="${R * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#dm${i})"${gone ? ' opacity=".85"' : ""}/>`;
     } else {
       face = `<circle cx="${x}" cy="${y}" r="${R}" fill="${accent}"/><text x="${x}" y="${y + 9}" text-anchor="middle" font-size="25" font-weight="700" fill="#fff" ${FONT}>${esc(Array.from(nm(p).trim())[0] || "•")}</text>`;
     }
@@ -209,11 +211,12 @@ export function descendantsSvg(g: Graph, me: VPerson, o: DescOpts = {}): Descend
     nodes +=
       (o2.focus ? `<circle cx="${x}" cy="${y}" r="${R + 16}" fill="url(#dhalo)"/>` : "") +
       `<circle cx="${x}" cy="${y + 2.5}" r="${R + 5}" fill="#3b2d16" opacity=".2"/>` +
-      `<circle cx="${x}" cy="${y}" r="${R + 5}" fill="#fffdf8" stroke="${ring}" stroke-width="${o2.focus ? 3.6 : o2.rootNode ? 3 : 2.2}"/>` +
+      `<circle cx="${x}" cy="${y}" r="${R + 5}" fill="#fffdf8" stroke="${ring}" stroke-width="${o2.focus ? 3.6 : o2.rootNode ? 3 : 2.2}"${o2.role ? ' stroke-dasharray="5 3"' : ""}/>` +
       (o2.rootNode ? `<circle cx="${x}" cy="${y}" r="${R + 11}" fill="none" stroke="#b58a42" stroke-width="1" stroke-dasharray="2 5"/>` : "") +
       face +
       nameLines.map((l, k) => halo(l, x, y + R + 24 + k * 15, 13, 700, o2.focus ? "#8a4f06" : "#2b2a20")).join("") +
-      (span ? halo(span, x, y + R + 40 + (nameLines.length - 1) * 15, 10.5, 400, "#7d5a1e") : "");
+      (span ? halo(span, x, y + R + 40 + (nameLines.length - 1) * 15, 10.5, 400, "#7d5a1e") : "") +
+      (o2.role ? halo(o2.role, x, y - R - 12, 11, 600, "#8a6a3a") : "");
     if (o2.focus) nodes += `<g transform="translate(${x} ${y - R - 17})"><rect x="-27" y="-11" width="54" height="20" rx="10" fill="#d98a1e"/><text y="3.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" ${FONT}>तपाईं</text></g>`;
     if (o2.rootNode) {
       // a small lotus above the founder
@@ -231,7 +234,11 @@ export function descendantsSvg(g: Graph, me: VPerson, o: DescOpts = {}): Descend
       branches += `<path d="M${a} ${u.y} Q${(a + b) / 2} ${u.y - 20} ${b} ${u.y}" stroke="#b8862f" stroke-width="1.8" fill="none" stroke-dasharray="2 5" stroke-linecap="round"/>`;
       branches += `<path d="M${(a + b) / 2} ${u.y - 2} c-7 -6 -8 -13 -3 -14 c2 0 3 1 3 3 c0 -2 1 -3 3 -3 c5 1 4 8 -3 14z" fill="#c4475f" stroke="#fffdf8" stroke-width="1.6" paint-order="stroke"/>`;
     }
-    people.forEach((p, i) => medal(p, xs[i], u.y, { focus: p.id === me.id, lit: u.lit && p.id === u.p.id, rootNode: u.depth === 0 && p.id === u.p.id }));
+    people.forEach((p, i) => {
+      // someone who married into the family is named as such, so a son-in-law never looks like a son (nor a daughter like a daughter-in-law)
+      const role = u.depth >= 1 && p.id !== u.p.id && p.id !== me.id ? (u.p.gender === "F" && p.gender !== "F" ? "जवाइँ" : u.p.gender !== "F" && p.gender === "F" ? "बुहारी" : "") : "";
+      medal(p, xs[i], u.y, { focus: p.id === me.id, lit: u.lit && p.id === u.p.id, rootNode: u.depth === 0 && p.id === u.p.id, role });
+    });
     u.kids.forEach(draw);
   };
   draw(tree);

@@ -2,6 +2,7 @@
 // further up (parents, grandparents … five generations, 2+4+8+16+32 places). The father's side is the left half (green),
 // the mother's side the right half (rose). A place with nobody recorded stays an empty, dashed segment.
 // With a `stamp` it is a finished poster (title, legend, usage notice, signature) ready to print or save as JPG.
+import { faceSrc, type FaceOpts } from "./face";
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
 import { BRAND, NOTICE, wrapChars, type Stamp } from "./notice";
@@ -16,7 +17,7 @@ export interface Fan {
   empty: number;
 }
 
-export interface FanOpts {
+export interface FanOpts extends FaceOpts {
   gens?: number;
   nm?: (p: VPerson) => string;
   /** adds the title banner's signature + notice, as for a download */
@@ -105,11 +106,14 @@ export function fanSvg(g: Graph, me: VPerson, o: FanOpts = {}): Fan {
   }
 
   // centre: the person
+  const meSrc = faceSrc(me, o);
   const ini = esc(Array.from(nm(me).trim())[0] || "•");
   const centre =
     `<circle cx="${cx}" cy="${cy}" r="${R0 + 6}" fill="#fffdf8" stroke="#d98a1e" stroke-width="3.4"/>` +
-    `<circle cx="${cx}" cy="${cy}" r="${R0 - 6}" fill="${me.gender === "F" ? "#a4506a" : "#44563a"}"/>` +
-    `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="40" font-weight="700" fill="#fff" ${FONT}>${ini}</text>`;
+    (meSrc
+      ? `<clipPath id="fcm"><circle cx="${cx}" cy="${cy}" r="${R0 - 6}"/></clipPath><circle cx="${cx}" cy="${cy}" r="${R0 - 6}" fill="${me.gender === "F" ? "#f4e3e8" : "#e6ecdf"}"/><image href="${esc(meSrc)}" x="${cx - R0 + 6}" y="${cy - R0 + 6}" width="${2 * (R0 - 6)}" height="${2 * (R0 - 6)}" preserveAspectRatio="xMidYMid slice" clip-path="url(#fcm)"/>`
+      : `<circle cx="${cx}" cy="${cy}" r="${R0 - 6}" fill="${me.gender === "F" ? "#a4506a" : "#44563a"}"/>` +
+        `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="40" font-weight="700" fill="#fff" ${FONT}>${ini}</text>`);
 
   // generation labels along the baseline, and the person's name under the centre
   let base = `<line x1="${cx - ROUT - 6}" y1="${cy}" x2="${cx + ROUT + 6}" y2="${cy}" stroke="#b58a42" stroke-width="1.2" opacity=".55"/>`;

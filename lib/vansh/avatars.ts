@@ -41,7 +41,10 @@ export async function loadSiteAvatars(db: SupabaseClient) {
     if (error || !data) return;
     const next: SiteAvatars = {};
     (["M", "F"] as const).forEach((g) => {
-      const f = data.find((o) => o.name.split(".")[0] === AVATAR_FILES[g]);
+      // the newest upload wins (an older file of another type may still be lying around)
+      const f = data
+        .filter((o) => o.name.split(".")[0] === AVATAR_FILES[g])
+        .sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))[0];
       if (f) next[g] = db.storage.from("site-assets").getPublicUrl(f.name).data.publicUrl + "?v=" + encodeURIComponent(f.updated_at || f.created_at || "");
     });
     set(next);
@@ -50,3 +53,6 @@ export async function loadSiteAvatars(db: SupabaseClient) {
     } catch {}
   } catch {}
 }
+
+/** The default avatar for someone with no photo: female for F, otherwise (M / unknown) male — same rule as the chart. */
+export const siteAvatarFor = (p: { gender?: string | null }, a: SiteAvatars | undefined): string | undefined => (p.gender === "F" ? a?.F : a?.M);
