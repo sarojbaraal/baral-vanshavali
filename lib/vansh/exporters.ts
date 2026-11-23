@@ -142,7 +142,7 @@ export async function exportXLSX(g: Graph) {
  */
 export async function loadPhotos(people: VPerson[], can: (id: string) => boolean, size = 96): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
-  const fetchSquare = async (url: string, png = false) => {
+  const once = async (url: string, png: boolean) => {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 10000);
     try {
@@ -156,6 +156,10 @@ export async function loadPhotos(people: VPerson[], can: (id: string) => boolean
       clearTimeout(t);
     }
   };
+  // a photo the browser already cached from a plain <img> may lack CORS headers and fail here: the second try bypasses that cache,
+  // so a member who has a photo is printed with it and not with the default figure
+  const fetchSquare = async (url: string, png = false) =>
+    (await once(url, png)) || (await once(url + (url.includes("?") ? "&" : "?") + "cb=" + Date.now().toString(36), png));
   const todo = people.filter((p) => p.photo_url && can(p.id) && !p.name_only);
   const one = async (p: VPerson) => {
     const d = await fetchSquare(p.photo_url!);
