@@ -46,6 +46,10 @@ export interface VPerson {
   bio?: string | null;
   bio_ai?: boolean | null;
   bio_at?: string | null;
+  /** newer AI text waiting for the person to accept (never replaces a self-written bio) */
+  bio_draft?: string | null;
+  /** facts the AI learned from the self-written bio, reused in later drafts */
+  bio_facts?: string[] | null;
   /** who may see each field: absent = all members; "near" = close relatives; "me" = only the person and admins */
   privacy?: Record<string, "near" | "me"> | null;
   ai_summary?: string | null;

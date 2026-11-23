@@ -39,7 +39,8 @@ export async function generateSelfStory(db: SupabaseClient, personId: string): P
 }
 
 /** The long biography for the profile and the printed life-sheet. Written only from recorded facts; saved by the server. */
-export async function generateBio(db: SupabaseClient, personId: string): Promise<void> {
+/** returns true when the text went to a draft (a self-written bio exists and is left untouched) */
+export async function generateBio(db: SupabaseClient, personId: string): Promise<boolean> {
   const { data, error } = await db.functions.invoke("generate-ai-insights", { body: { action: "biography", person_id: personId } });
   if (error) {
     let msg = error.message;
@@ -52,4 +53,5 @@ export async function generateBio(db: SupabaseClient, personId: string): Promise
     throw new Error(msg);
   }
   if (!data?.success) throw new Error(data?.error || "जीवनी बनेन");
+  return !!data.draft;
 }

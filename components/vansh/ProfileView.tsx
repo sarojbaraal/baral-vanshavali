@@ -73,13 +73,21 @@ export default function ProfileView() {
   const write = async () => {
     setBusy(true);
     try {
-      await generateBio(db, p.id);
+      const asDraft = await generateBio(db, p.id);
       await reload();
-      toast("✅ जीवनी तयार भयो");
+      toast(asDraft ? "✅ तपाईंको जीवनी जस्ताको तस्तै छ — नयाँ मस्यौदा तल राखिएको छ" : "✅ जीवनी तयार भयो");
     } catch (e) {
       toast("⚠ " + (e as Error).message);
     }
     setBusy(false);
+  };
+  const resolveDraft = async (action: "append" | "replace" | "discard") => {
+    setBusy(true);
+    const { error } = await db.rpc("resolve_bio_draft", { p_person: p.id, p_action: action });
+    setBusy(false);
+    if (error) return toast("⚠ " + error.message);
+    await reload();
+    toast(action === "discard" ? "मस्यौदा हटाइयो" : "✅ जीवनी अद्यावधिक भयो");
   };
   const saveDraft = async () => {
     setBusy(true);
@@ -180,8 +188,20 @@ export default function ProfileView() {
             <>
               <div className="bio">{p.bio.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
               <p className="mut bio-src">
-                {p.bio_ai ? "🤖 रेकर्डमा भएका तथ्यबाट AI ले लेखेको। गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको।"}
+                {p.bio_ai ? "🤖 रेकर्डमा भएका तथ्यबाट AI ले लेखेको। गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको। AI ले यसलाई कहिल्यै मेटाउँदैन।"}
+                {!p.bio_ai && (p.bio_facts?.length ?? 0) > 0 && ` AI ले यसबाट ${p.bio_facts!.length} तथ्य सिकेको छ र अर्को मस्यौदामा प्रयोग गर्छ।`}
               </p>
+              {p.bio_draft && (
+                <div className="bio-draft">
+                  <b>🤖 AI को नयाँ मस्यौदा</b>
+                  <div className="bio">{p.bio_draft.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
+                  <div className="row">
+                    <button disabled={busy} onClick={() => resolveDraft("append")}>आफ्नो जीवनीमा थप्ने</button>
+                    <button className="ghost" disabled={busy} onClick={() => resolveDraft("replace")}>यसैले बदल्ने</button>
+                    <button className="ghost" disabled={busy} onClick={() => resolveDraft("discard")}>हटाउने</button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <p className="mut">
@@ -190,7 +210,7 @@ export default function ProfileView() {
           )}
           {!editing && (
             <div className="row">
-              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? "🤖 AI बाट फेरि लेख्ने" : "🤖 AI बाट जीवनी लेख्ने"}</button>
+              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? (p.bio_ai ? "🤖 AI बाट फेरि लेख्ने" : "🤖 AI को मस्यौदा बनाउने") : "🤖 AI बाट जीवनी लेख्ने"}</button>
               <button className="ghost" onClick={() => { setDraft(p.bio || ""); setEditing(true); }}>{p.bio ? "आफैँ सच्याउने" : "आफैँ लेख्ने"}</button>
             </div>
           )}

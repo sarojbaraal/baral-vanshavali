@@ -91,6 +91,7 @@ export default function TreeView() {
     const v = V.current;
     if (stageRef.current) stageRef.current.style.transform = `translate(${v.x}px,${v.y}px) scale(${v.k})`;
     if (stageRef.current && stageRef.current.dataset.lod !== lodOf(v.k)) stageRef.current.dataset.lod = lodOf(v.k);
+    stageRef.current?.style.setProperty("--ik", String(1 / v.k));
     if (zrRef.current) zrRef.current.value = String(Math.round(v.k * 100));
   };
   const zoomAt = (f: number, cx: number, cy: number) => {
@@ -392,7 +393,7 @@ export default function TreeView() {
           value={q}
           people={visible}
           rel={kin}
-          placeholder="🔍 नाम वा साइनो खोज्नुहोस्…"
+          placeholder="🔍 खोज्नुहोस्…"
           onChange={(t) => {
             qText.tree = t;
             setQ(t);
@@ -402,7 +403,7 @@ export default function TreeView() {
         />
         <button className="ghost" aria-label="सानो" onClick={() => mid(0.9)}>−</button>
         <input type="number" id="zr" ref={zrRef} min={2} max={250} step={5} inputMode="numeric" aria-label="जुम प्रतिशत" title="जुम % लेखेर Enter थिच्नुहोस्" />
-        <span className="mut">%</span>
+        <span className="mut zp">%</span>
         <button className="ghost" aria-label="ठूलो" onClick={() => mid(1.1)}>+</button>
         <button
           className="ghost"
@@ -455,6 +456,7 @@ export default function TreeView() {
                 <div className="tx">
                   <small className="gn">Gen {d + 1}</small>
                   <b>{ok ? dispName(p, true) : nm(p)}</b>
+                  <i className="fn">{(ok ? dispName(p, true) : nm(p)).split(/\s+/)[0]}</i>
                   <span>{ok ? (np(yr(p.birth_bs)) || "?") + (p.is_living ? "" : " – " + (np(yr(p.death_bs)) || "?")) : "लक"}</span>
                 </div>
               </div>
