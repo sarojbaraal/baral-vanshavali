@@ -954,19 +954,31 @@ export function PasswordDialog() {
   const [a, setA] = useState("");
   const [b, setB] = useState("");
   const [err, setErr] = useState("");
+  // signed in with Google/Facebook only: this adds a password; otherwise it changes the existing one
+  const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    db.auth.getUser().then(({ data }) => {
+      const ids = (data.user?.identities || []).map((i) => i.provider);
+      setAdding(ids.length > 0 && !ids.includes("email"));
+    });
+  }, [db]);
   const save = async () => {
     if (a.length < 6) return setErr("पासवर्ड कम्तिमा ६ अक्षरको हुनुपर्छ।");
     if (a !== b) return setErr("दुई पासवर्ड मिलेन।");
     const { error } = await db.auth.updateUser({ password: a });
     if (error) return setErr(error.message);
-    toast("✅ अब इमेल र पासवर्डले पनि लगइन गर्न सकिन्छ");
+    toast(adding ? "✅ अब इमेल र पासवर्डले पनि लगइन गर्न सकिन्छ" : "✅ पासवर्ड परिवर्तन भयो");
     closeDialog();
   };
   return (
     <>
-      <h3>🔑 इमेल / पासवर्ड जोड्ने</h3>
+      <h3>🔑 {adding ? "इमेल / पासवर्ड जोड्ने" : "पासवर्ड परिवर्तन"}</h3>
       <p className="mut">
-        तपाईं Google/Facebook बाट लगइन हुनुभएको छ। पासवर्ड राखेपछि <b>{me?.email}</b> र यो पासवर्डले पनि लगइन गर्न सकिन्छ।
+        {adding ? (
+          <>तपाईं Google/Facebook बाट लगइन हुनुभएको छ। पासवर्ड राखेपछि <b>{me?.email}</b> र यो पासवर्डले पनि लगइन गर्न सकिन्छ।</>
+        ) : (
+          <><b>{me?.email}</b> को नयाँ पासवर्ड राख्नुहोस्। अर्को पटकदेखि यही पासवर्डले लगइन गर्नुपर्छ।</>
+        )}
       </p>
       <PasswordField label="नयाँ पासवर्ड" value={a} onChange={setA} autoComplete="new-password" />
       <PasswordField label="पासवर्ड फेरि लेख्नुहोस्" value={b} onChange={setB} autoComplete="new-password" onEnter={save} />

@@ -5,7 +5,7 @@ import { relMap, relsOf, genNo } from "@/lib/vansh/relations";
 import { ordinalOf } from "@/lib/vansh/kinship";
 import type { VPerson } from "@/lib/vansh/types";
 import { chartGoto } from "@/lib/vansh/chartGoto";
-import { ageLabel, dateProof, neTime } from "@/lib/vansh/bs";
+import { ageLabel, dateProof, deceasedLine, neTime } from "@/lib/vansh/bs";
 import { generateAiSummary } from "@/lib/vansh/aiSummary";
 import { ageN, dispName, fbOk, maritalLabel, np, yr } from "@/lib/vansh/text";
 import { openDoc } from "@/lib/vansh/docs";
@@ -164,7 +164,8 @@ export default function DetailPanel({
   const ord = ordinalOf(g, p.id);
   const RL: { q: typeof p; l: string; self?: boolean }[] = relsOf(g, p);
   RL.splice(RL.filter((x) => x.l === "बुबा" || x.l === "आमा").length, 0, { q: p, l: "यही प्रोफाइल", self: true });
-  const age = p.is_living || p.death_bs ? ageLabel(p) : "";
+  const age = p.is_living !== false ? ageLabel(p) : "";
+  const gone = deceasedLine(p);
 
   const showInChart = () => {
     if (!p) return;
@@ -215,6 +216,7 @@ export default function DetailPanel({
             <div className="pp-l">
               🧬 Gen {np(genNo(g, p.id, depthOf))}
               {age ? " · उमेर " + age : ""}
+              {gone ? " · दिवङ्गत: " + gone : ""}
             </div>
             {g.addrOf(p) && <div className="pp-l">📍 {g.addrOf(p)}</div>}
           </div>

@@ -166,16 +166,14 @@ function AccountMenu({ acc }: { acc: AccountInfo }) {
             </svg>
             सम्पर्क
           </Link>
-          {acc.oauthOnly && (
-            <button role="menuitem" onClick={() => go("password")}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                <circle cx="8" cy="15" r="4" />
-                <path d="M11 12l9-9M16 7l3 3" />
-              </svg>
-              इमेल/पासवर्ड जोड्ने
-            </button>
-          )}
           <hr />
+          <button role="menuitem" onClick={() => go("password")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <circle cx="8" cy="15" r="4" />
+              <path d="M11 12l9-9M16 7l3 3" />
+            </svg>
+            पासवर्ड परिवर्तन
+          </button>
           <button role="menuitem" className="out" onClick={() => go("logout")}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" />

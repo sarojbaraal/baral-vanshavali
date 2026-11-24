@@ -59,3 +59,22 @@ describe("defaults", () => {
     expect(g.addrOf(g.byId.b)).toBe("काठमाडौं");
   });
 });
+
+import { deceasedLine } from "../bs";
+describe("deceasedLine", () => {
+  const dead = { is_living: false, birth_bs: "2000-01-15", death_bs: "2020-03-10" };
+  it("proven dates: age at death in years / months / days and how long ago", () => {
+    const l = deceasedLine({ ...dead, birth_exact: true, death_exact: true }, new Date("2026-06-01"));
+    expect(l).toMatch(/^२० वर्ष [०-९]+ महिना( [०-९]+ दिन)? \([०-९]+ वर्ष.* अगाडि\)$/);
+    expect(l).toContain("२० वर्ष १ महिना");
+  });
+  it("estimated dates: whole years only", () => {
+    const l = deceasedLine(dead, new Date("2026-06-01"));
+    expect(l.startsWith("२० वर्ष (")).toBe(true);
+    expect(l).toContain("वर्ष अगाडि)");
+    expect(l).not.toContain("महिना");
+  });
+  it("nothing for the living", () => {
+    expect(deceasedLine({ is_living: true, birth_bs: "2000-01-15" })).toBe("");
+  });
+});

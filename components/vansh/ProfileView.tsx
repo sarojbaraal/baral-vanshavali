@@ -17,7 +17,7 @@ import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
 import { genNo, relsOf } from "@/lib/vansh/relations";
 import { np } from "@/lib/vansh/text";
-import { ageLabel } from "@/lib/vansh/bs";
+import { ageLabel, deceasedLine } from "@/lib/vansh/bs";
 import { openDoc } from "@/lib/vansh/docs";
 import { useVansh } from "./VanshContext";
 import { Avatar } from "./ui";
@@ -163,7 +163,7 @@ export default function ProfileView() {
           <p className="prof-chips">
             {gen > 0 && <span>{np(gen)} औँ पुस्ता</span>}
             {age && p.is_living !== false && <span>उमेर {age}</span>}
-            <span>{p.is_living === false ? "दिवङ्गत" : "जीवित"}</span>
+            <span>{p.is_living === false ? "दिवङ्गत" + (deceasedLine(p) ? ": " + deceasedLine(p) : "") : "जीवित"}</span>
           </p>
         </div>
         <div className="prof-act">

@@ -1,7 +1,7 @@
 // Bikram Sambat helpers: AD → BS conversion (so dates can be typed in either calendar) and display in Nepali.
 // Everything is stored and shown in BS; AD is only an input convenience.
 import { adToBs, bsToAd } from "@sbmdkl/nepali-date-converter";
-import { MONTHS_NE, ageN, na, np } from "./text";
+import { MONTHS_NE, ageN, bsYear, na, np } from "./text";
 
 /** Range the conversion tables cover. */
 export const AD_MIN_YEAR = 1924;
@@ -116,4 +116,29 @@ export function ageLabel(p: { birth_bs?: string | null; death_bs?: string | null
   }
   const y = ageN(p.birth_bs, living ? null : p.death_bs, now);
   return y == null ? "" : `${np(y)} वर्ष`;
+}
+
+/** "२० वर्ष ३ महिना ५ दिन (६ वर्ष २ महिना अगाडि)": the age at death and how long ago. Whole years unless the dates are proven. Empty for the living. */
+export function deceasedLine(p: { birth_bs?: string | null; death_bs?: string | null; birth_exact?: boolean | null; death_exact?: boolean | null; is_living?: boolean | null }, now: Date = new Date()): string {
+  if (p.is_living !== false) return "";
+  const atDeath = (() => {
+    if (!p.birth_bs || !p.death_bs) return "";
+    if (p.birth_exact && p.death_exact) {
+      const a = ageYMD(p.birth_bs, p.death_bs, now);
+      if (a) return ageText(a);
+    }
+    const y = ageN(p.birth_bs, p.death_bs, now);
+    return y == null ? "" : `${np(y)} वर्ष`;
+  })();
+  const ago = (() => {
+    if (!p.death_bs) return "";
+    if (p.death_exact) {
+      const a = ageYMD(p.death_bs, null, now);
+      if (a) return `${ageText(a)} अगाडि`;
+    }
+    const d = parseInt(na(p.death_bs).slice(0, 4), 10);
+    const y = d ? bsYear(now) - d : NaN;
+    return y > 0 ? `${np(y)} वर्ष अगाडि` : y === 0 ? "यसै वर्ष" : "";
+  })();
+  return [atDeath, ago && `(${ago})`].filter(Boolean).join(" ");
 }

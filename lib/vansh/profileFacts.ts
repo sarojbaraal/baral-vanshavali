@@ -1,7 +1,7 @@
 // The facts shown on a person's profile and on the printed life-sheet (only what is recorded and visible).
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
-import { ageLabel, dateProof, neTime } from "./bs";
+import { ageLabel, dateProof, deceasedLine, neTime } from "./bs";
 import { maritalLabel } from "./text";
 
 export interface Fact {
@@ -21,7 +21,7 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
   add("जन्म स्थान", p.birth_place);
   if (p.is_living === false) {
     add("मृत्यु मिति (वि.सं.)", dateProof(p.death_bs, p.death_exact) || "दिवङ्गत");
-    if (p.birth_exact && p.death_exact && age) add("मृत्युमा उमेर", age);
+    add("दिवङ्गत", deceasedLine(p));
     add("मृत्यु स्थान", p.death_place);
   }
   add("हालको ठेगाना", p.is_living === false ? "" : g.addrOf(p));
