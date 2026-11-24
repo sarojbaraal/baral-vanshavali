@@ -454,7 +454,7 @@ export default function TreeView() {
               >
                 <div className="av">{ok ? <Avatar g={p.gender} photo={p.photo_url} live={p.is_living} /> : "🔒"}</div>
                 <div className="tx">
-                  <small className="gn">Gen {d + 1}</small>
+                  <small className="gn">पुस्ता# {np(d + 1)}</small>
                   <b>{ok ? dispName(p, true) : nm(p)}</b>
                   <i className="fn">{(ok ? dispName(p, true) : nm(p)).split(/\s+/)[0]}</i>
                   <span>{ok ? (np(yr(p.birth_bs)) || "?") + (p.is_living ? "" : " – " + (np(yr(p.death_bs)) || "?")) : "लक"}</span>

@@ -30,6 +30,7 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
   add("कार्यरत संस्था", p.organization);
   add("बैवाहिक स्थिति", p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : "");
   add("विवाह मिति (वि.सं.)", dateProof(p.marriage_bs, p.marriage_exact));
+  if (p.marital_status === "divorced") add("सम्बन्ध विच्छेद मिति (वि.सं.)", dateProof(p.divorce_bs, p.divorce_exact));
   const sp = g.spousesOf(p).map((id) => g.byId[id]).filter(Boolean);
   add(p.gender === "F" ? "पति" : p.gender === "M" ? "पत्नी" : "जीवनसाथी", sp.map((x) => (opts.nm ? opts.nm(x) : x.name)).join(", "));
   add("फोन", p.phone);

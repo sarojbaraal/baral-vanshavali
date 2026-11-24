@@ -214,7 +214,7 @@ export default function DetailPanel({
             {rl && <div className="pp-l">💠 {rl === "तपाईं" ? "तपाईं" : "तपाईंको " + rl}</div>}
             {ord && <div className="pp-l">🔢 {ord} {p.gender === "F" ? "छोरी" : "छोरा"}</div>}
             <div className="pp-l">
-              🧬 Gen {np(genNo(g, p.id, depthOf))}
+              🧬 पुस्ता# {np(genNo(g, p.id, depthOf))}
               {age ? " · उमेर " + age : ""}
               {gone ? " · दिवङ्गत: " + gone : ""}
             </div>
@@ -338,12 +338,14 @@ export default function DetailPanel({
           <Box c="#F59E0B" ic="🎂" l="जन्म मिति">{dateProof(p.birth_bs, p.birth_exact)}</Box>
           <Box c="#F59E0B" ic="🕰" l="जन्म समय" mg>{neTime(p.birth_time)}</Box>
           {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{dateProof(p.death_bs, p.death_exact)}</Box>}
+          {!p.is_living && <Box c="#6B7280" ic="🌙" l="मृत्यु तिथि" mg>{p.death_tithi}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🪦" l="मृत्यु स्थान" mg>{p.death_place}</Box>}
           <Box c="" ic="🎓" l="शिक्षा" mg>{p.education}</Box>
           <Box c="" ic="💼" l="पेशा" mg>{p.occupation}</Box>
           <Box c="" ic="🏢" l="कार्यरत संस्था" mg>{p.organization}</Box>
           <Box c="" ic="👫" l="बैवाहिक स्थिति" mg>{p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : null}</Box>
           <Box c="" ic="💒" l="विवाह मिति" mg>{dateProof(p.marriage_bs, p.marriage_exact)}</Box>
+          {p.marital_status === "divorced" && <Box c="" ic="💔" l="सम्बन्ध विच्छेद मिति" mg>{dateProof(p.divorce_bs, p.divorce_exact)}</Box>}
           {p.gender === "F" && (
             <>
               <Box c="#EC4899" ic="👰" l="विवाहअघिको थर">{p.maiden_name}</Box>

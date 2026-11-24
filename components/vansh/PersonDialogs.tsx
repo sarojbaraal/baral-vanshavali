@@ -148,6 +148,9 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [birthExact, setBirthExact] = useState(!!v.birth_exact);
   const [deathExact, setDeathExact] = useState(!!v.death_exact);
   const [marriageExact, setMarriageExact] = useState(!!v.marriage_exact);
+  const [divorceBs, setDivorceBs] = useState(v.divorce_bs || "");
+  const [divorceExact, setDivorceExact] = useState(!!v.divorce_exact);
+  const [deathTithi, setDeathTithi] = useState(v.death_tithi || "");
   const [birthTime, setBirthTime] = useState(v.birth_time || "");
   const [birthPlace, setBirthPlace] = useState(v.birth_place || "");
   const [deathPlace, setDeathPlace] = useState(v.death_place || "");
@@ -156,6 +159,14 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [organization, setOrganization] = useState(v.organization || "");
   const [docs, setDocs] = useState<PersonDoc[]>(v.documents || []);
   const [newDocs, setNewDocs] = useState<File[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const addFiles = (fl: File[]) => {
+    if (!fl.length) return;
+    const msg = checkNewDocs(docs.length + newDocs.length, fl);
+    if (msg) return setErr(msg);
+    setErr("");
+    setNewDocs((l) => [...l, ...fl]);
+  };
   const [marriageBs, setMarriageBs] = useState(v.marriage_bs || "");
   const [phone, setPhone] = useState(v.phone || "");
   const [fb, setFb] = useState(v.facebook || "");
@@ -276,6 +287,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               death_place: deathPlace, education, occupation, organization, marital_status: marital,
               marriage_bs: married ? marriageBs : "",
               birth_exact: birthExact, death_exact: deathExact, marriage_exact: married && marriageExact, birth_time: birthTime,
+              divorce_bs: marital === "divorced" ? divorceBs : "", divorce_exact: marital === "divorced" && divorceExact, death_tithi: living ? "" : deathTithi,
             },
           },
           fbOk
@@ -346,7 +358,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               return (
                 <>
                   {rl && <span>💠 {rl === "तपाईं" ? "तपाईं" : "तपाईंको " + rl}</span>}
-                  <span>🧬 Gen {np(genNo(g, p.id))}{age != null ? " · उमेर " + np(age) + " वर्ष" : ""}</span>
+                  <span>🧬 पुस्ता# {np(genNo(g, p.id))}{age != null ? " · उमेर " + np(age) + " वर्ष" : ""}</span>
                   {address && <span>📍 {address}</span>}
                 </>
               );
@@ -359,14 +371,14 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
         <div className="edb">
           <h2>{title}</h2>
           <div className="sech first">व्यक्तिगत</div>
-          <label>
-            नाम
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <div className="edg seg2">
+          <div className="nrow">
+            <label className="nm">
+              नाम
+              <input value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
             <div>
               <span className="fl">लिङ्ग</span>
-              <div className="rad">
+              <div className="rad seg">
                 {radio("gx", "M", "पुरुष", gender, setGender)}
                 {radio("gx", "F", "महिला", gender, setGender)}
                 {radio("gx", "O", "अन्य", gender, setGender)}
@@ -374,7 +386,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             </div>
             <div>
               <span className="fl">अवस्था</span>
-              <div className="rad">
+              <div className="rad seg">
                 {radio("lv", "true", "जीवित", String(living), (x) => setLiving(x === "true"))}
                 {radio("lv", "false", "दिवंगत", String(living), (x) => setLiving(x === "true"))}
               </div>
@@ -386,16 +398,21 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
           </div>
           <div className="sech">जन्म</div>
           <div className="edg">
-            <div className="dtf">
+            <div className="dtf wide">
               <span className="fl">जन्म मिति</span>
-              <DateField value={birth} onChange={setBirth} />
-              <div className="dmeta">
-                <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
-                <label className="btime">
-                  <span>समय</span>
-                  <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} aria-label="जन्म समय (थाहा भए)" />
-                </label>
-              </div>
+              <DateField
+                value={birth}
+                onChange={setBirth}
+                after={
+                  <>
+                    <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
+                    <label className="btime">
+                      <span>समय</span>
+                      <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} aria-label="जन्म समय (थाहा भए)" />
+                    </label>
+                  </>
+                }
+              />
             </div>
             <label>
               जन्म स्थान
@@ -419,8 +436,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             <div className="edg">
               <div className="dtf">
                 <span className="fl">विवाह मिति</span>
-                <DateField value={marriageBs} onChange={setMarriageBs} />
-                <div className="dmeta"><ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} /></div>
+                <DateField value={marriageBs} onChange={setMarriageBs} after={<ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} />} />
                 {v.more_spouse_ids?.length ? (
                   <small className="mut">एकभन्दा बढी जोडी भएकाले यो मिति मुख्य जोडीको मात्र हो; अर्को जोडीसँग स्वतः मिल्दैन।</small>
                 ) : spouse.value || spouse.newName ? (
@@ -432,20 +448,31 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
                 <input value={marriedName} onChange={(e) => onMarriedName(e.target.value)} />
               </label>
             </div>
+            {marital === "divorced" && (
+              <div className="edg">
+                <div className="dtf">
+                  <span className="fl">सम्बन्ध विच्छेद मिति</span>
+                  <DateField value={divorceBs} onChange={setDivorceBs} after={<ProofBox checked={divorceExact} onChange={setDivorceExact} disabled={!divorceBs} />} />
+                </div>
+              </div>
+            )}
           </div>
           <div hidden={living}>
             <div className="sech">मृत्यु</div>
             <div className="edg">
               <div className="dtf">
                 <span className="fl">मृत्यु मिति</span>
-                <DateField value={death} onChange={setDeath} />
-                <div className="dmeta"><ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} /></div>
+                <DateField value={death} onChange={setDeath} after={<ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} />} />
               </div>
               <label>
-                मृत्यु स्थान
-                <input value={deathPlace} onChange={(e) => setDeathPlace(e.target.value)} />
+                मृत्यु तिथि
+                <input value={deathTithi} maxLength={60} onChange={(e) => setDeathTithi(e.target.value)} placeholder="जस्तै: भाद्र शुक्ल पञ्चमी" />
               </label>
             </div>
+            <label>
+              मृत्यु स्थान
+              <input value={deathPlace} onChange={(e) => setDeathPlace(e.target.value)} />
+            </label>
           </div>
           <div className="sech">शिक्षा र पेशा</div>
           <div className="edg">
@@ -516,21 +543,23 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               ))}
             </ul>
           )}
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            multiple
-            aria-label="PDF थप्ने"
-            onChange={(e) => {
-              const fl = Array.from(e.target.files || []);
-              e.target.value = "";
-              if (!fl.length) return;
-              const msg = checkNewDocs(docs.length + newDocs.length, fl);
-              if (msg) return setErr(msg);
-              setErr("");
-              setNewDocs((l) => [...l, ...fl]);
-            }}
-          />
+          <label
+            className={"dz" + (dragOver ? " over" : "")}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
+          >
+            <span className="dz-i" aria-hidden="true">📎</span>
+            <b>PDF यहाँ तान्नुहोस्</b>
+            <small>वा थिचेर फाइल छान्नुहोस्</small>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              multiple
+              aria-label="PDF थप्ने"
+              onChange={(e) => { const fl = Array.from(e.target.files || []); e.target.value = ""; addFiles(fl); }}
+            />
+          </label>
           <Note label="एडमिनलाई सन्देश (स्रोत/प्रमाण)" value={nt} onChange={setNt} />
           <div className="msg" id="fm">{err}</div>
         </div>

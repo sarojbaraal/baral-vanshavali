@@ -202,7 +202,7 @@ function fmtDate(digits: string): string {
   return [y, m, d].filter((x, i) => x || i === 0).join("-");
 }
 
-export function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function DateField({ value, onChange, after }: { value: string; onChange: (v: string) => void; after?: React.ReactNode }) {
   const initial = String(value || "").replace(/(-00)+$/, "");
   const [text, setText] = useState(np(initial));
   // the date can be typed in BS (default) or AD; it is always stored and shown as BS in Nepali digits
@@ -249,22 +249,27 @@ export function DateField({ value, onChange }: { value: string; onChange: (v: st
   };
   return (
     <div className="dtr1">
-      <div className="dmode" role="group" aria-label="मितिको प्रकार">
-        <button type="button" className={ad ? "" : "on"} onClick={() => switchTo(false)}>वि.सं.</button>
-        <button type="button" className={ad ? "on" : ""} onClick={() => switchTo(true)}>ई.सं. (AD)</button>
+      <div className="dtrow">
+        <div className="dbox">
+          <input
+            className="dsingle"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={10}
+            placeholder={ad ? "YYYY-MM-DD (ई.सं.)" : "बर्ष-महिना-गते"}
+            aria-label={ad ? "मिति (ई.सं.)" : "मिति (वि.सं.)"}
+            aria-invalid={bad ? true : undefined}
+            value={text}
+            onChange={(e) => change(e.target.value)}
+            onBlur={finish}
+          />
+          <div className="dmode" role="group" aria-label="मितिको प्रकार">
+            <button type="button" className={ad ? "" : "on"} onClick={() => switchTo(false)}>BS</button>
+            <button type="button" className={ad ? "on" : ""} onClick={() => switchTo(true)}>AD</button>
+          </div>
+        </div>
+        {after}
       </div>
-      <input
-        className="dsingle"
-        inputMode="numeric"
-        autoComplete="off"
-        maxLength={10}
-        placeholder={ad ? "YYYY-MM-DD (ई.सं., जस्तै 1988-06-02)" : "बर्ष-महिना-गते (जस्तै २०४५-०५-१२)"}
-        aria-label={ad ? "मिति (ई.सं.)" : "मिति (वि.सं.)"}
-        aria-invalid={bad ? true : undefined}
-        value={text}
-        onChange={(e) => change(e.target.value)}
-        onBlur={finish}
-      />
       {ad && conv && !bad && <small className="mut">= {neDate(conv)} (वि.सं.) — बाहिर थिचेपछि यही देखिन्छ</small>}
       {ad && !conv && !bad && <small className="mut">पूरा मिति (वर्ष-महिना-गते) लेख्नुहोस्</small>}
       {!ad && y.length === 4 && m.length === 2 && +m === 0 && !bad && <small className="mut">{np(y)} साल (महिना/गते थाहा छैन)</small>}
