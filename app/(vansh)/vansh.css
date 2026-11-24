@@ -1085,3 +1085,7 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
   .dbox { flex-basis: 100%; }
 }
 .edb .dtf.wide { grid-column: 1 / -1; }
+.nrow { align-items: start; }
+.nrow .nm { margin-top: .75rem; }
+.edb .rad.seg { height: 46px; }
+.edb .nrow .fl { margin-top: .75rem; }

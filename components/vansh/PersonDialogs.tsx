@@ -151,6 +151,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [divorceBs, setDivorceBs] = useState(v.divorce_bs || "");
   const [divorceExact, setDivorceExact] = useState(!!v.divorce_exact);
   const [deathTithi, setDeathTithi] = useState(v.death_tithi || "");
+  const [deathReason, setDeathReason] = useState(v.death_reason || "");
   const [birthTime, setBirthTime] = useState(v.birth_time || "");
   const [birthPlace, setBirthPlace] = useState(v.birth_place || "");
   const [deathPlace, setDeathPlace] = useState(v.death_place || "");
@@ -287,7 +288,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               death_place: deathPlace, education, occupation, organization, marital_status: marital,
               marriage_bs: married ? marriageBs : "",
               birth_exact: birthExact, death_exact: deathExact, marriage_exact: married && marriageExact, birth_time: birthTime,
-              divorce_bs: marital === "divorced" ? divorceBs : "", divorce_exact: marital === "divorced" && divorceExact, death_tithi: living ? "" : deathTithi,
+              divorce_bs: marital === "divorced" ? divorceBs : "", divorce_exact: marital === "divorced" && divorceExact, death_tithi: living ? "" : deathTithi, death_reason: living ? "" : deathReason,
             },
           },
           fbOk
@@ -443,19 +444,17 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
                   <small className="mut">पति/पत्नी दुवैको विवाह मिति एउटै हुन्छ — एकमा राख्दा दुवैमा सच्चिन्छ।</small>
                 ) : null}
               </div>
-              <label hidden={gender !== "F"}>
-                विवाहपछिको थर (पतिको थरबाट स्वतः)
-                <input value={marriedName} onChange={(e) => onMarriedName(e.target.value)} />
-              </label>
-            </div>
-            {marital === "divorced" && (
-              <div className="edg">
+              {marital === "divorced" && (
                 <div className="dtf">
                   <span className="fl">सम्बन्ध विच्छेद मिति</span>
                   <DateField value={divorceBs} onChange={setDivorceBs} after={<ProofBox checked={divorceExact} onChange={setDivorceExact} disabled={!divorceBs} />} />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <label hidden={gender !== "F"}>
+              विवाहपछिको थर (पतिको थरबाट स्वतः)
+              <input value={marriedName} onChange={(e) => onMarriedName(e.target.value)} />
+            </label>
           </div>
           <div hidden={living}>
             <div className="sech">मृत्यु</div>
@@ -469,10 +468,16 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
                 <input value={deathTithi} maxLength={60} onChange={(e) => setDeathTithi(e.target.value)} placeholder="जस्तै: भाद्र शुक्ल पञ्चमी" />
               </label>
             </div>
-            <label>
-              मृत्यु स्थान
-              <input value={deathPlace} onChange={(e) => setDeathPlace(e.target.value)} />
-            </label>
+            <div className="edg">
+              <label>
+                मृत्यु स्थान
+                <input value={deathPlace} onChange={(e) => setDeathPlace(e.target.value)} />
+              </label>
+              <label>
+                मृत्युको कारण
+                <input value={deathReason} maxLength={120} onChange={(e) => setDeathReason(e.target.value)} placeholder="जस्तै: बिरामी, दुर्घटना" />
+              </label>
+            </div>
           </div>
           <div className="sech">शिक्षा र पेशा</div>
           <div className="edg">

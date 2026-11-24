@@ -38,6 +38,7 @@ export const LABEL: Record<string, string> = {
   divorce_bs: "सम्बन्ध विच्छेद मिति ",
   divorce_exact: "सम्बन्ध विच्छेद मिति प्रमाणित ",
   death_tithi: "मृत्यु तिथि ",
+  death_reason: "मृत्युको कारण ",
   marital_status: "बैवाहिक स्थिति ",
   organization: "कार्यरत संस्था ",
   photo_url: "प्रोफाइल फोटो ",

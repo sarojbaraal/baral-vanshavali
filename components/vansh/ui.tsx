@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getSiteAvatars, subscribeSiteAvatars } from "@/lib/vansh/avatars";
 import { composeDate, match, MONTHS_NE, na, np } from "@/lib/vansh/text";
-import { AD_MAX_YEAR, AD_MIN_YEAR, adToBsStr, neDate } from "@/lib/vansh/bs";
+import { AD_MAX_YEAR, AD_MIN_YEAR, adToBsStr, bsToAdStr, neDate } from "@/lib/vansh/bs";
 import type { VPerson } from "@/lib/vansh/types";
 import type { Graph, Perms } from "@/lib/vansh/graph";
 import { useVansh } from "./VanshContext";
@@ -237,7 +237,8 @@ export function DateField({ value, onChange, after }: { value: string; onChange:
   const switchTo = (toAd: boolean) => {
     if (toAd === ad) return;
     setAd(toAd);
-    if (toAd) setText(""); // AD is typed fresh; the existing BS value stays until a valid AD date replaces it
+    // the date already entered is converted to the other calendar (only a complete date can be converted)
+    if (toAd) setText(np(bsToAdStr(String(value || "")) || ""));
     else setText(np(String(value || "").replace(/(-00)+$/, "")));
   };
   const finish = () => {

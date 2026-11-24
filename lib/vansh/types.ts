@@ -35,6 +35,7 @@ export interface VPerson {
   divorce_exact?: boolean | null;
   /** तिथि of the death, free text */
   death_tithi?: string | null;
+  death_reason?: string | null;
   phone?: string | null;
   address?: string | null;
   notes?: string | null;

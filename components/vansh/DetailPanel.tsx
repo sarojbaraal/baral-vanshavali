@@ -339,6 +339,7 @@ export default function DetailPanel({
           <Box c="#F59E0B" ic="🕰" l="जन्म समय" mg>{neTime(p.birth_time)}</Box>
           {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{dateProof(p.death_bs, p.death_exact)}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🌙" l="मृत्यु तिथि" mg>{p.death_tithi}</Box>}
+          {!p.is_living && <Box c="#6B7280" ic="🩺" l="मृत्युको कारण" mg>{p.death_reason}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🪦" l="मृत्यु स्थान" mg>{p.death_place}</Box>}
           <Box c="" ic="🎓" l="शिक्षा" mg>{p.education}</Box>
           <Box c="" ic="💼" l="पेशा" mg>{p.occupation}</Box>

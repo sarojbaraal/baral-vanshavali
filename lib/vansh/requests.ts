@@ -62,6 +62,7 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
     cur.death_bs = "";
     cur.death_place = "";
     cur.death_tithi = "";
+    cur.death_reason = "";
   }
   if (cur.gender !== "F") {
     cur.maiden_name = "";
