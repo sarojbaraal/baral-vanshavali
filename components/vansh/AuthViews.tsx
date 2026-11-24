@@ -280,7 +280,7 @@ export function AuthView() {
               <>
                 {viaOauth ? (
                   <p className="mut" style={{ textAlign: "center", fontSize: "0.85rem" }}>
-                    पछिल्लो पटक Google/Facebook बाट लगइन गर्नुभएको थियो। पासवर्ड राख्न लगइनपछि 🔑 थिच्नुहोस्।
+                    पछिल्लो पटक Google/Facebook बाट लगइन गर्नुभएको थियो। पासवर्ड राख्न लगइनपछि माथिको खाता मेनु खोलेर “पासवर्ड परिवर्तन” थिच्नुहोस्।
                     <br />
                     <button className="lnk" onClick={() => { try { localStorage.removeItem("vv_oauth"); } catch {} setViaOauth(false); }}>मसँग पासवर्ड छ</button>
                   </p>
