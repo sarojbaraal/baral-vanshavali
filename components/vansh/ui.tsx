@@ -347,7 +347,8 @@ export function ProofBox({ checked, onChange, disabled }: { checked: boolean; on
   return (
     <label className={"proof" + (checked ? " on" : "")}>
       <input type="checkbox" checked={checked && !disabled} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
-      <span>✔ प्रमाणित मिति <small className="mut">(नटिक भए अनुमानित मानिन्छ)</small></span>
+      <span className="pbx" aria-hidden="true">{checked && !disabled ? "✓" : ""}</span>
+      <span>{checked && !disabled ? "प्रमाणित" : "अनुमानित"}</span>
     </label>
   );
 }

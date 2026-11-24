@@ -358,36 +358,50 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
         <button type="button" className="ghost pp-x" aria-label="बन्द" onClick={closeDialog}>×</button>
         <div className="edb">
           <h2>{title}</h2>
-          <div className="rad">
-            {radio("gx", "M", "पुरुष", gender, setGender)}
-            {radio("gx", "F", "महिला", gender, setGender)}
-            {radio("gx", "O", "अन्य / अज्ञात", gender, setGender)}
-          </div>
-          {sameGender && <p className="mut" style={{ margin: ".4rem 0 0" }}>⚠ दुवैको लिङ्ग एउटै छ — पति/पत्नीको लिङ्ग जाँच्नुहोस्।</p>}
-          <label style={{ marginTop: ".9rem" }}>
+          <div className="sech first">व्यक्तिगत</div>
+          <label>
             नाम
             <input value={name} onChange={(e) => setName(e.target.value)} />
           </label>
+          <div className="edg seg2">
+            <div>
+              <span className="fl">लिङ्ग</span>
+              <div className="rad">
+                {radio("gx", "M", "पुरुष", gender, setGender)}
+                {radio("gx", "F", "महिला", gender, setGender)}
+                {radio("gx", "O", "अन्य", gender, setGender)}
+              </div>
+            </div>
+            <div>
+              <span className="fl">अवस्था</span>
+              <div className="rad">
+                {radio("lv", "true", "जीवित", String(living), (x) => setLiving(x === "true"))}
+                {radio("lv", "false", "दिवंगत", String(living), (x) => setLiving(x === "true"))}
+              </div>
+            </div>
+          </div>
+          {sameGender && <p className="mut" style={{ margin: ".4rem 0 0" }}>⚠ दुवैको लिङ्ग एउटै छ — पति/पत्नीको लिङ्ग जाँच्नुहोस्।</p>}
           <div className="pcw">
             <PhotoCrop ref={cropRef} bare onChange={setPhoto} current={v.photo_url} />
           </div>
-          <hr />
+          <div className="sech">जन्म</div>
           <div className="edg">
-            <div>
-              <label>जन्म मिति</label>
+            <div className="dtf">
+              <span className="fl">जन्म मिति</span>
               <DateField value={birth} onChange={setBirth} />
-              <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
-              <label className="btime">
-                <span>जन्म समय <small className="mut">(थाहा भए)</small></span>
-                <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} />
-              </label>
+              <div className="dmeta">
+                <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
+                <label className="btime">
+                  <span>समय</span>
+                  <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} aria-label="जन्म समय (थाहा भए)" />
+                </label>
+              </div>
             </div>
             <label>
               जन्म स्थान
               <input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
             </label>
           </div>
-          <hr />
           <div className="sech">विवाह</div>
           <label>
             बैवाहिक स्थिति
@@ -403,10 +417,10 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <Sx st={spouse} options={opts} allowNew />
             </label>
             <div className="edg">
-              <div>
-                <label>विवाह मिति</label>
+              <div className="dtf">
+                <span className="fl">विवाह मिति</span>
                 <DateField value={marriageBs} onChange={setMarriageBs} />
-                <ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} />
+                <div className="dmeta"><ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} /></div>
                 {v.more_spouse_ids?.length ? (
                   <small className="mut">एकभन्दा बढी जोडी भएकाले यो मिति मुख्य जोडीको मात्र हो; अर्को जोडीसँग स्वतः मिल्दैन।</small>
                 ) : spouse.value || spouse.newName ? (
@@ -419,17 +433,13 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               </label>
             </div>
           </div>
-          <hr />
-          <div className="rad">
-            {radio("lv", "true", "जीवित", String(living), (x) => setLiving(x === "true"))}
-            {radio("lv", "false", "दिवंगत", String(living), (x) => setLiving(x === "true"))}
-          </div>
           <div hidden={living}>
+            <div className="sech">मृत्यु</div>
             <div className="edg">
-              <div>
-                <label>मृत्यु मिति</label>
+              <div className="dtf">
+                <span className="fl">मृत्यु मिति</span>
                 <DateField value={death} onChange={setDeath} />
-                <ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} />
+                <div className="dmeta"><ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} /></div>
               </div>
               <label>
                 मृत्यु स्थान
@@ -437,6 +447,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               </label>
             </div>
           </div>
+          <div className="sech">शिक्षा र पेशा</div>
           <div className="edg">
             <label>
               शिक्षा
@@ -451,7 +462,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             कार्यरत संस्था
             <input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="जस्तै: विद्यालय, बैंक, कार्यालयको नाम" />
           </label>
-          <hr />
           <div className="sech">परिवार</div>
           <div className="edg">
             <label>
@@ -463,7 +473,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <Sx st={mother} options={opts} allowNew />
             </label>
           </div>
-          <hr />
           <div className="sech">सम्पर्क</div>
           <div className="edg">
             <label>
@@ -484,7 +493,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             हालको ठेगाना
             <input value={address} onChange={(e) => setAddress(e.target.value)} />
           </label>
-          <hr />
           <label>
             टिप्पणी
             <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
