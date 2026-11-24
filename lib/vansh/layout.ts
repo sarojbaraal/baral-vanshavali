@@ -37,6 +37,8 @@ export interface TreeNode {
   tw: number;
   ax: number;
   stk?: boolean;
+  /** hangs from a parent's vertical spine: the blood child is drawn first (leftmost) so the branch joins her/him, not the spouse */
+  hang?: boolean;
 }
 export interface Card {
   p: VPerson;
@@ -95,16 +97,27 @@ function buildNode(g: Graph, p: VPerson, seen: Set<string>, d: number): TreeNode
 
 function measure(n: TreeNode, collapsed: Set<string>) {
   n.vis = collapsed.has(n.p.id) ? [] : n.all;
-  n.vis.forEach((c) => measure(c, collapsed));
+  n.vis.forEach((c) => {
+    c.hang = false;
+    measure(c, collapsed);
+  });
   n.ct = n.vis.reduce((a, c) => a + c.tw, 0) + D.hg * Math.max(0, n.vis.length - 1);
   n.tw = Math.max(n.w, n.ct);
   const canHang = (c: TreeNode) => c.sps.length <= 1 && (c.vis.length === 0 || !!c.stk);
   n.stk = !!D.stack && n.sps.length <= 1 && n.vis.length > 0 && n.vis.every(canHang) && (n.vis.length >= D.stack || !!D.deep);
   if (n.stk) {
-    const pi = rowOf(n).indexOf(n.p);
-    n.ct = pi * (D.cw + D.gap) + STK * 2 + Math.max(...n.vis.map((c) => c.tw));
-    n.tw = Math.max(n.w, n.ct);
+    n.vis.forEach((c) => {
+      c.hang = true;
+      if (c.stk) stkSize(c); // its own row order changed, so its hanging width too
+    });
+    stkSize(n);
   }
+}
+
+function stkSize(n: TreeNode) {
+  const pi = rowOf(n).indexOf(n.p);
+  n.ct = pi * (D.cw + D.gap) + STK * 2 + Math.max(...n.vis.map((c) => c.tw));
+  n.tw = Math.max(n.w, n.ct);
 }
 
 function rowOf(n: TreeNode): VPerson[] {
@@ -112,7 +125,8 @@ function rowOf(n: TreeNode): VPerson[] {
   if (!sps.length) return [p];
   if (sps.length === 1) {
     const s = sps[0];
-    return p.gender === "F" && s.gender !== "F" ? [s, p] : [p, s];
+    // a married daughter is drawn after her husband, except in a hanging column where the spine must reach her
+    return p.gender === "F" && s.gender !== "F" && !n.hang ? [s, p] : [p, s];
   }
   return [sps[0], p, ...sps.slice(1)];
 }
