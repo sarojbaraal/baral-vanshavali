@@ -5,7 +5,7 @@ import { relMap, relsOf, genNo } from "@/lib/vansh/relations";
 import { ordinalOf } from "@/lib/vansh/kinship";
 import type { VPerson } from "@/lib/vansh/types";
 import { chartGoto } from "@/lib/vansh/chartGoto";
-import { neDate } from "@/lib/vansh/bs";
+import { ageLabel, dateProof, neTime } from "@/lib/vansh/bs";
 import { generateAiSummary } from "@/lib/vansh/aiSummary";
 import { ageN, dispName, fbOk, maritalLabel, np, yr } from "@/lib/vansh/text";
 import { openDoc } from "@/lib/vansh/docs";
@@ -164,7 +164,7 @@ export default function DetailPanel({
   const ord = ordinalOf(g, p.id);
   const RL: { q: typeof p; l: string; self?: boolean }[] = relsOf(g, p);
   RL.splice(RL.filter((x) => x.l === "बुबा" || x.l === "आमा").length, 0, { q: p, l: "यही प्रोफाइल", self: true });
-  const age = p.is_living || p.death_bs ? ageN(p.birth_bs, p.is_living ? "" : p.death_bs) : null;
+  const age = p.is_living || p.death_bs ? ageLabel(p) : "";
 
   const showInChart = () => {
     if (!p) return;
@@ -214,7 +214,7 @@ export default function DetailPanel({
             {ord && <div className="pp-l">🔢 {ord} {p.gender === "F" ? "छोरी" : "छोरा"}</div>}
             <div className="pp-l">
               🧬 Gen {np(genNo(g, p.id, depthOf))}
-              {age != null ? " · उमेर " + np(age) + " वर्ष" : ""}
+              {age ? " · उमेर " + age : ""}
             </div>
             {g.addrOf(p) && <div className="pp-l">📍 {g.addrOf(p)}</div>}
           </div>
@@ -333,14 +333,15 @@ export default function DetailPanel({
           )}
           </Sec>
           <Sec id="pi" title="व्यक्तिगत विवरण" col={col} toggle={toggle}>
-          <Box c="#F59E0B" ic="🎂" l="जन्म मिति">{neDate(p.birth_bs)}</Box>
-          {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{neDate(p.death_bs)}</Box>}
+          <Box c="#F59E0B" ic="🎂" l="जन्म मिति">{dateProof(p.birth_bs, p.birth_exact)}</Box>
+          <Box c="#F59E0B" ic="🕰" l="जन्म समय" mg>{neTime(p.birth_time)}</Box>
+          {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{dateProof(p.death_bs, p.death_exact)}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🪦" l="मृत्यु स्थान" mg>{p.death_place}</Box>}
           <Box c="" ic="🎓" l="शिक्षा" mg>{p.education}</Box>
           <Box c="" ic="💼" l="पेशा" mg>{p.occupation}</Box>
           <Box c="" ic="🏢" l="कार्यरत संस्था" mg>{p.organization}</Box>
           <Box c="" ic="👫" l="बैवाहिक स्थिति" mg>{p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : null}</Box>
-          <Box c="" ic="💒" l="विवाह मिति" mg>{neDate(p.marriage_bs)}</Box>
+          <Box c="" ic="💒" l="विवाह मिति" mg>{dateProof(p.marriage_bs, p.marriage_exact)}</Box>
           {p.gender === "F" && (
             <>
               <Box c="#EC4899" ic="👰" l="विवाहअघिको थर">{p.maiden_name}</Box>

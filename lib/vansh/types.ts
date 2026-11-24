@@ -25,6 +25,12 @@ export interface VPerson {
   is_living: boolean;
   birth_bs?: string | null;
   death_bs?: string | null;
+  /** ✔ the date is proven (documents / certain); otherwise it is an estimate */
+  birth_exact?: boolean | null;
+  death_exact?: boolean | null;
+  marriage_exact?: boolean | null;
+  /** "HH:MM" (24 h), when the birth time is known */
+  birth_time?: string | null;
   phone?: string | null;
   address?: string | null;
   notes?: string | null;

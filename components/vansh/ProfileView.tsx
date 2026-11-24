@@ -16,7 +16,8 @@ import { muralSvg } from "@/lib/vansh/mural";
 import { isBaralByBirth } from "@/lib/vansh/gotra";
 import { fatherLine, profileFacts } from "@/lib/vansh/profileFacts";
 import { genNo, relsOf } from "@/lib/vansh/relations";
-import { ageN, np } from "@/lib/vansh/text";
+import { np } from "@/lib/vansh/text";
+import { ageLabel } from "@/lib/vansh/bs";
 import { openDoc } from "@/lib/vansh/docs";
 import { useVansh } from "./VanshContext";
 import { Avatar } from "./ui";
@@ -66,7 +67,7 @@ export default function ProfileView() {
   const facts = profileFacts(g, p, { showEmail: true, nm: perms.nm });
   const gen = genNo(g, p.id);
   const family = relsOf(g, p).filter((x) => perms.can(x.q.id));
-  const age = ageN(p.birth_bs, p.death_bs);
+  const age = ageLabel(p);
   const kin = fatherLine(g, p, perms.nm);
   const baral = isBaralByBirth(g, p);
 
@@ -161,7 +162,7 @@ export default function ProfileView() {
           <p className="prof-kin">{kin.length > 1 ? kin.join(" → ") : "वंश-क्रम पूरा भइसकेको छैन"}</p>
           <p className="prof-chips">
             {gen > 0 && <span>{np(gen)} औँ पुस्ता</span>}
-            {age !== null && p.is_living !== false && <span>उमेर {np(age)} वर्ष</span>}
+            {age && p.is_living !== false && <span>उमेर {age}</span>}
             <span>{p.is_living === false ? "दिवङ्गत" : "जीवित"}</span>
           </p>
         </div>

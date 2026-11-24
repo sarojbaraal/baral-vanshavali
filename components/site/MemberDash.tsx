@@ -1,145 +1,171 @@
 "use client";
-// Home page, signed-in members: "तपाईंको कथा" (AI story), the coming occasions and "पारिवारिक तथ्यांक" (family statistics).
-// This is the one place for these; the app's family tabs no longer repeat them.
+// Home page, signed-in members: "पारिवारिक तथ्यांक". Pick a tile and the chart below follows it; pick a bar and the
+// people behind it are listed. (The story and the coming occasions sit in the hero, next to the member's own tree.)
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
-import { generateSelfStory } from "@/lib/vansh/aiSummary";
-import { familyEvents, whenLabel, type FamilyEvent } from "@/lib/vansh/events";
 import { createGraph } from "@/lib/vansh/graph";
 import { genNo } from "@/lib/vansh/relations";
-import { np } from "@/lib/vansh/text";
+import { bsYear, np, yr } from "@/lib/vansh/text";
+import type { VPerson } from "@/lib/vansh/types";
 import { useMember } from "./useMember";
 
-const ICON = { birthday: "🎂", shraddha: "🪔", anniversary: "💍" } as const;
+type Subset = "all" | "live" | "dead" | "men" | "women";
+type Dim = "gen" | "age";
 
-const line = (e: FamilyEvent) =>
-  e.kind === "birthday"
-    ? e.own ? "तपाईंको जन्मदिन" : `${e.person.name} · जन्मदिन`
-    : e.kind === "shraddha" ? `${e.person.name} को श्राद्ध` : `${e.person.name}${e.spouse ? " र " + e.spouse.name : ""} · ${e.detail}`;
+const TILES: { k: Subset; l: string; dim?: Dim }[] = [
+  { k: "all", l: "कुल सदस्य" },
+  { k: "live", l: "जीवित" },
+  { k: "dead", l: "दिवङ्गत" },
+  { k: "men", l: "पुरुष" },
+  { k: "women", l: "महिला" },
+];
+const SUBSET_NAME: Record<Subset, string> = { all: "सबै सदस्य", live: "जीवित सदस्य", dead: "दिवङ्गत सदस्य", men: "पुरुष सदस्य", women: "महिला सदस्य" };
+const AGE_LABELS = ["०–९", "१०–१९", "२०–२९", "३०–३९", "४०–४९", "५०–५९", "६०–६९", "७०–७९", "८०+"];
+
+interface Group { key: string; label: string; ppl: VPerson[] }
 
 export default function MemberDash() {
-  const { d, reload } = useMember();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const { d } = useMember();
+  const [sub, setSub] = useState<Subset>("all");
+  const [dim, setDim] = useState<Dim>("gen");
+  const [sel, setSel] = useState<string | null>(null);
 
   const g = useMemo(() => (d ? createGraph(d.people) : null), [d]);
-  const me = d && g && d.meId ? g.byId[d.meId] : undefined;
-  const events = useMemo(
-    () => (d ? familyEvents(d.people, { can: (id) => !d.people.find((x) => x.id === id)?.is_locked, meId: d.meId }) : null),
-    [d]
-  );
-  const stats = useMemo(() => {
-    if (!d || !g) return null;
-    const open = d.people.filter((x) => !x.is_locked);
-    const byGen: Record<number, number> = {};
-    open.forEach((x) => {
-      const n = genNo(g, x.id);
-      byGen[n] = (byGen[n] || 0) + 1;
-    });
-    const gens = Object.keys(byGen).map(Number).sort((a, b) => a - b);
-    return {
-      total: open.length,
-      live: open.filter((x) => x.is_living !== false).length,
-      men: open.filter((x) => x.gender === "M").length,
-      women: open.filter((x) => x.gender === "F").length,
-      gens: gens.length ? Math.max(...gens) : 0,
-      byGen: gens.map((n) => [n, byGen[n]] as const),
+  const open = useMemo(() => (d ? d.people.filter((x) => !x.is_locked) : []), [d]);
+  const gens = useMemo(() => {
+    const m: Record<string, number> = {};
+    if (g) open.forEach((x) => (m[x.id] = genNo(g, x.id)));
+    return m;
+  }, [g, open]);
+
+  const subset = useMemo(() => {
+    const f: Record<Subset, (p: VPerson) => boolean> = {
+      all: () => true,
+      live: (p) => p.is_living !== false,
+      dead: (p) => p.is_living === false,
+      men: (p) => p.gender === "M",
+      women: (p) => p.gender === "F",
     };
-  }, [d, g]);
+    return open.filter(f[sub]);
+  }, [open, sub]);
 
-  if (!d || !g || !stats) return null;
-
-  const make = async () => {
-    if (!me) return;
-    setBusy(true);
-    setErr("");
-    try {
-      await generateSelfStory(createClient(), me.id);
-      await reload();
-    } catch (e) {
-      setErr((e as Error).message);
+  const groups: Group[] = useMemo(() => {
+    if (dim === "gen") {
+      const m = new Map<number, VPerson[]>();
+      subset.forEach((p) => m.set(gens[p.id], [...(m.get(gens[p.id]) || []), p]));
+      return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([n, ppl]) => ({ key: "g" + n, label: np(n), ppl }));
     }
-    setBusy(false);
+    const now = bsYear();
+    const B: VPerson[][] = AGE_LABELS.map(() => []);
+    const unk: VPerson[] = [];
+    subset.forEach((p) => {
+      const b = parseInt(yr(p.birth_bs));
+      const e = p.is_living !== false ? now : parseInt(yr(p.death_bs));
+      if (!b || !e || e < b) unk.push(p);
+      else B[Math.min(8, Math.floor((e - b) / 10))].push(p);
+    });
+    const out = B.map((ppl, i) => ({ key: "a" + i, label: AGE_LABELS[i], ppl }));
+    if (unk.length) out.push({ key: "au", label: "?", ppl: unk });
+    return out;
+  }, [subset, dim, gens]);
+
+  if (!d || !g) return null;
+
+  const total = open.length;
+  const live = open.filter((x) => x.is_living !== false).length;
+  const nGens = Math.max(0, ...Object.values(gens));
+  const count: Record<Subset, number> = {
+    all: total, live, dead: total - live,
+    men: open.filter((x) => x.gender === "M").length,
+    women: open.filter((x) => x.gender === "F").length,
+  };
+  const max = Math.max(1, ...groups.map((x) => x.ppl.length));
+  const picked = groups.find((x) => x.key === sel) || null;
+  const stay = () => {
+    try { sessionStorage.setItem("vv_back", "/#stats|" + Date.now()); } catch {}
   };
 
-  const up = events?.upcoming.slice(0, 5) || [];
-  const ownSoon = events?.own && !up.some((u) => u.person.id === events.own!.person.id && u.kind === "birthday") ? events.own : null;
-  const max = Math.max(1, ...stats.byGen.map((x) => x[1]));
-  const dead = stats.total - stats.live;
-  const pct = (n: number) => `${(n / Math.max(1, stats.men + stats.women)) * 100}%`;
-
   return (
-    <section className="sec dash" aria-labelledby="dash-h">
+    <section className="sec dash" id="stats" aria-labelledby="dash-h">
       <div className="sec-in">
-        <h2 id="dash-h">तपाईंको परिवार, एक नजरमा</h2>
-        <div className="dash-top">
-          {me && (
-            <figure className="story2">
-              <span className="story2-q" aria-hidden="true">“</span>
-              <figcaption>तपाईंको कथा</figcaption>
-              <blockquote>{me.ai_summary_self || "AI ले तपाईंको परिवार र विवरण हेरेर तपाईंकै बारेमा छोटो कथा लेखिदिन्छ। नभएको कुरा थप्दैन।"}</blockquote>
-              {!!me.ai_tags?.length && !!me.ai_summary_self && (
-                <p className="story2-t">{me.ai_tags.map((t) => <span key={t}>#{t}</span>)}</p>
-              )}
-              <button className="btn ghost" disabled={busy} onClick={make}>
-                {busy ? "लेख्दै…" : me.ai_summary_self ? "↻ फेरि लेख्ने" : "✨ मेरो कथा लेख्ने"}
-              </button>
-              {err && <small role="alert" className="dash-err">{err}</small>}
-            </figure>
-          )}
-          <div className="occ">
-            <h3>आगामी अवसर</h3>
-            {ownSoon && (
-              <p className="occ-row own"><i>{ICON.birthday}</i><span><b>तपाईंको जन्मदिन</b><small>{whenLabel(ownSoon.days)}</small></span></p>
-            )}
-            {up.length ? (
-              up.map((e) => (
-                <p key={e.kind + e.person.id} className={`occ-row ${e.days === 0 ? "today" : ""}`}>
-                  <i>{ICON[e.kind]}</i>
-                  <span><b>{line(e)}</b><small>{whenLabel(e.days)}{e.kind === "shraddha" ? " · अनुमानित" : ""}</small></span>
-                </p>
-              ))
-            ) : !ownSoon ? (
-              <p className="mut">आगामी ७ दिनमा कुनै अवसर छैन।</p>
-            ) : null}
-            {(events?.upcoming.length || 0) > 5 && <small>+{np((events?.upcoming.length || 0) - 5)} थप अवसर</small>}
-          </div>
-        </div>
-
         <div className="stat">
           <div className="stat-h">
-            <h3>पारिवारिक तथ्यांक</h3>
-            {d.staff && <Link href="/app?tab=ov">विस्तृत तथ्यांक</Link>}
+            <h2 id="dash-h">पारिवारिक तथ्यांक</h2>
+            {d.staff && <Link href="/app?tab=ov" onClick={stay}>विस्तृत तथ्यांक</Link>}
           </div>
-          <ul className="stat-tiles">
-            <li><b>{np(stats.total)}</b><span>कुल सदस्य</span></li>
-            <li><b>{np(stats.live)}</b><span>जीवित</span></li>
-            <li><b>{np(dead)}</b><span>दिवङ्गत</span></li>
-            <li><b>{np(stats.gens)}</b><span>पुस्ता</span></li>
+          <ul className="stat-tiles" role="group" aria-label="तथ्यांक छान्नुहोस्">
+            {TILES.map((t) => (
+              <li key={t.k}>
+                <button type="button" className={sub === t.k ? "on" : ""} aria-pressed={sub === t.k} onClick={() => { setSub(t.k); setSel(null); }}>
+                  <b>{np(count[t.k])}</b>
+                  <span>{t.l}</span>
+                </button>
+              </li>
+            ))}
+            <li>
+              <button type="button" className={dim === "gen" && sub === "all" ? "on" : ""} aria-pressed={dim === "gen" && sub === "all"} onClick={() => { setSub("all"); setDim("gen"); setSel(null); }}>
+                <b>{np(nGens)}</b>
+                <span>पुस्ता</span>
+              </button>
+            </li>
           </ul>
-          <div className="stat-cols">
-            <div>
-              <h4>पुस्ताअनुसार सदस्य</h4>
-              <div className="gbars" role="img" aria-label="पुस्ताअनुसार सदस्य सङ्ख्या">
-                {stats.byGen.map(([n, c]) => (
-                  <div key={n} className="gbar" title={`${np(n)} औँ पुस्ता: ${np(c)}`}>
-                    <em>{np(c)}</em>
-                    <i style={{ height: `${Math.max(6, (c / max) * 100)}%` }} />
-                    <span>{np(n)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4>लिङ्ग अनुपात</h4>
-              <div className="split" role="img" aria-label={`पुरुष ${stats.men}, महिला ${stats.women}`}>
-                <i className="m" style={{ width: pct(stats.men) }} />
-                <i className="f" style={{ width: pct(stats.women) }} />
-              </div>
-              <p className="split-l"><span><s className="m" />पुरुष {np(stats.men)}</span><span><s className="f" />महिला {np(stats.women)}</span></p>
+
+          <div className="sx-head">
+            <h3>{SUBSET_NAME[sub]} · {dim === "gen" ? "पुस्ताअनुसार" : "उमेरअनुसार (वर्ष)"}</h3>
+            <div className="sx-seg" role="group" aria-label="कसरी बाँडेर हेर्ने">
+              <button type="button" className={dim === "gen" ? "on" : ""} aria-pressed={dim === "gen"} onClick={() => { setDim("gen"); setSel(null); }}>पुस्ता</button>
+              <button type="button" className={dim === "age" ? "on" : ""} aria-pressed={dim === "age"} onClick={() => { setDim("age"); setSel(null); }}>उमेर</button>
             </div>
           </div>
+          {groups.length ? (
+            <div className="gbars" role="group" aria-label={`${SUBSET_NAME[sub]}को वितरण`}>
+              {groups.map((x) => {
+                const m = x.ppl.filter((p) => p.gender === "M").length;
+                const f = x.ppl.filter((p) => p.gender === "F").length;
+                const o = x.ppl.length - m - f;
+                const h = Math.max(6, (x.ppl.length / max) * 100);
+                return (
+                  <button
+                    key={x.key}
+                    type="button"
+                    className={"gbar" + (sel === x.key ? " on" : "")}
+                    aria-pressed={sel === x.key}
+                    title={`${dim === "gen" ? np(x.label) + " औँ पुस्ता" : x.label + " वर्ष"}: ${np(x.ppl.length)} (पुरुष ${np(m)}, महिला ${np(f)})`}
+                    onClick={() => setSel(sel === x.key ? null : x.key)}
+                  >
+                    <em>{np(x.ppl.length)}</em>
+                    <span className="gcol" style={{ height: `${h}%` }}>
+                      <i className="m" style={{ flexGrow: m }} />
+                      <i className="f" style={{ flexGrow: f }} />
+                      {o > 0 && <i className="o" style={{ flexGrow: o }} />}
+                    </span>
+                    <span className="gl">{x.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mut">देखाउन सदस्य छैनन्।</p>
+          )}
+          <p className="split-l"><span><s className="m" />पुरुष</span><span><s className="f" />महिला</span><span className="mut">{picked ? "" : "कुनै स्तम्भ थिच्दा सदस्यको नाम देखिन्छ"}</span></p>
+
+          {picked && (
+            <div className="sx-list" aria-live="polite">
+              <h4>
+                {dim === "gen" ? `${picked.label} औँ पुस्ता` : `${picked.label} वर्ष`} · {np(picked.ppl.length)} जना
+                <button type="button" className="sx-x" onClick={() => setSel(null)} aria-label="बन्द गर्नुहोस्">×</button>
+              </h4>
+              <ul>
+                {picked.ppl.slice().sort(g.byBirth).slice(0, 30).map((p) => (
+                  <li key={p.id} className={p.gender === "F" ? "f" : p.gender === "M" ? "m" : ""}>
+                    <b>{p.name}</b>
+                    <small>{yr(p.birth_bs) ? np(yr(p.birth_bs)) : ""}{p.is_living === false ? " · दिवङ्गत" : ""}</small>
+                  </li>
+                ))}
+              </ul>
+              {picked.ppl.length > 30 && <small className="mut">+{np(picked.ppl.length - 30)} जना — सबै हेर्न <Link href="/app?tab=fam">सदस्य सूची</Link> खोल्नुहोस्</small>}
+            </div>
+          )}
         </div>
       </div>
     </section>

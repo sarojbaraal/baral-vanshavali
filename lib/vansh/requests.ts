@@ -1,7 +1,7 @@
 // Change-request building and validation (ported from the original app.js: form submit / send / desc).
 import type { ChangeRequest, NewRequest, PersonDoc, RequestAction, VPerson, VProfile } from "./types";
 import type { Perms } from "./graph";
-import { DATE_RE, FIELDS, LABEL, XL, maritalLabel, surnameOf, wifeNames } from "./text";
+import { DATE_RE, FIELDS, LABEL, XL, maritalLabel, surnameOf, wifeNames, withFatherSurname } from "./text";
 
 export const STATUS: Record<string, string> = { pending: "पर्खाइमा", approved: "स्वीकृत", rejected: "अस्वीकृत" };
 export const ACT: Record<string, string> = { add: "थप्ने", update: "सच्याउने", delete: "हटाउने" };
@@ -37,7 +37,7 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
   const cur: Record<string, unknown> = {};
   FIELDS.forEach((k) => {
     const v = inp.values[k];
-    cur[k] = k === "is_living" ? v === true || v === "true" : String(v ?? "").trim();
+    cur[k] = k === "is_living" || k.endsWith("_exact") ? v === true || v === "true" : String(v ?? "").trim();
   });
   if (inp.photoUrl) cur.photo_url = inp.photoUrl;
   cur.marital_status = String(cur.marital_status || "unknown");
@@ -51,6 +51,11 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
     const r = wifeNames(String(cur.spouse_name), "", "", surnameOf(String(cur.name)));
     if (r) cur.spouse_name = r.name;
   }
+  // a proof mark belongs to a date: no date, no mark
+  if (!cur.birth_bs) cur.birth_exact = false;
+  if (!cur.death_bs || cur.is_living) cur.death_exact = false;
+  if (!cur.marriage_bs) cur.marriage_exact = false;
+  if (cur.birth_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cur.birth_time))) return { error: "जन्म समय मिलेन (जस्तै ०४:३०)।" };
   if (cur.is_living) {
     cur.death_bs = "";
     cur.death_place = "";
@@ -77,7 +82,7 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
     payload = {};
     FIELDS.forEach((k) => {
       // a person cached before the field existed counts as "unknown", never as a change to blank
-      const old = k === "marital_status" ? p.marital_status || "unknown" : (p as unknown as Record<string, unknown>)[k] ?? (k === "is_living" ? true : "");
+      const old = k === "marital_status" ? p.marital_status || "unknown" : k.endsWith("_exact") ? !!(p as unknown as Record<string, unknown>)[k] : (p as unknown as Record<string, unknown>)[k] ?? (k === "is_living" ? true : "");
       if (String(cur[k]) !== String(old)) payload[k] = cur[k];
     });
     if (inp.photoUrl) payload.photo_url = inp.photoUrl;
@@ -131,13 +136,14 @@ export function buildKidRequests(
   other: string,
   kids: KidDraft[],
   note: string,
-  spouseCount: number
+  spouseCount: number,
+  fatherName?: string | null
 ): { error?: string; requests?: NewRequest[] } {
   let bad = "";
   const list = kids
     .map((c) => {
       if (c.birth_bs && !DATE_RE.test(c.birth_bs)) bad = "मिति YYYY-MM-DD ढाँचामा हुनुपर्छ (साल ४ अंक)।";
-      const k: Record<string, unknown> = { name: c.name.trim(), gender: c.gender, is_living: c.is_living };
+      const k: Record<string, unknown> = { name: withFatherSurname(c.name, fatherName), gender: c.gender, is_living: c.is_living };
       if (c.birth_bs) k.birth_bs = c.birth_bs;
       if (c.birth_place.trim()) k.birth_place = c.birth_place.trim();
       const sn = c.spouse.trim();

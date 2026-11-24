@@ -1013,3 +1013,11 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 /* AI biography draft shown under a self-written biography */
 .bio-draft{margin-top:12px;padding:10px 12px;border:1px dashed #c9a227;border-radius:10px;background:#fffbea}
 .bio-draft .bio{margin:6px 0}
+
+/* ✔ proven-date box and birth time under the date fields */
+.proof { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; font-size: .82rem; cursor: pointer; color: var(--mut, #6b7280); }
+.proof input { width: 1rem; height: 1rem; margin: 0; accent-color: #1f8a4c; }
+.proof.on { color: #1f6b3d; font-weight: 600; }
+.proof.on small { display: none; }
+.btime { display: block; margin-top: .55rem; }
+.btime input { max-width: 9rem; }

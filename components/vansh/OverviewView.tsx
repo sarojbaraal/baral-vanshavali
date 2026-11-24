@@ -139,11 +139,26 @@ export default function OverviewView() {
   const base = (myPos(me) && g.byId[myPos(me) as string]) || null;
   const nz = (d: Data) => d.filter((x) => x[1].length);
   const onPick = (t: string, l: string, ids: string[]) => setList({ t, l, ids });
+  // opened from the home page's "पारिवारिक तथ्यांक": go back there, to the same place (the mark is only good for ten minutes)
+  const [fromHome] = useState(() => {
+    try {
+      const [path, ts] = (sessionStorage.getItem("vv_back") || "").split("|");
+      return path === "/#stats" && Date.now() - Number(ts) < 600000;
+    } catch {
+      return false;
+    }
+  });
+  const goBack = () => {
+    if (fromHome) {
+      try { sessionStorage.removeItem("vv_back"); } catch {}
+      window.location.assign("/#stats");
+    } else setTab("fam");
+  };
 
   return (
     <>
       <div className="row" style={{ margin: "0 0 1rem" }}>
-        <button className="ghost" onClick={() => setTab("fam")}>← सदस्य</button>
+        <button className="ghost" onClick={goBack}>{fromHome ? "← पारिवारिक तथ्यांक" : "← सदस्य"}</button>
       </div>
       <h2>
         📊 पारिवारिक तथ्यांक <small className="mut">{np(pool.length)} सदस्य · कुनै भागमा क्लिक गर्नुहोस्</small>
