@@ -36,7 +36,7 @@ export function createGraph(people: VPerson[]) {
   };
 
   const addrOf = (p: VPerson): string =>
-    p.address || (spousesOf(p).length === 1 ? byId[spousesOf(p)[0]]?.address : "") || "";
+    p.address || (spousesOf(p).length === 1 ? byId[spousesOf(p)[0]]?.address : "") || p.birth_place || "";
 
   const isMarriedIn = (p: VPerson): boolean => {
     const s = p.spouse_id ? byId[p.spouse_id] : undefined;

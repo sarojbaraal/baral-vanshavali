@@ -341,3 +341,13 @@ export function Toast() {
     </div>
   );
 }
+
+/** ✔ box under a date: ticked = the date is proven (documents / certain), unticked = an estimate. */
+export function ProofBox({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className={"proof" + (checked ? " on" : "")}>
+      <input type="checkbox" checked={checked && !disabled} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <span>✔ प्रमाणित मिति <small className="mut">(नटिक भए अनुमानित मानिन्छ)</small></span>
+    </label>
+  );
+}

@@ -1,8 +1,8 @@
 // The facts shown on a person's profile and on the printed life-sheet (only what is recorded and visible).
 import type { Graph } from "./graph";
 import type { VPerson } from "./types";
-import { neDate } from "./bs";
-import { ageN, maritalLabel, np } from "./text";
+import { ageLabel, dateProof, neTime } from "./bs";
+import { maritalLabel } from "./text";
 
 export interface Fact {
   k: string;
@@ -15,11 +15,13 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
     const t = (v || "").toString().trim();
     if (t) out.push({ k, v: t });
   };
-  const age = ageN(p.birth_bs, p.death_bs);
-  add("जन्म मिति (वि.सं.)", neDate(p.birth_bs) + (age !== null && p.is_living !== false ? ` · उमेर ${np(age)} वर्ष` : ""));
+  const age = ageLabel(p);
+  add("जन्म मिति (वि.सं.)", dateProof(p.birth_bs, p.birth_exact) + (age && p.is_living !== false ? ` · उमेर ${age}` : ""));
+  add("जन्म समय", neTime(p.birth_time));
   add("जन्म स्थान", p.birth_place);
   if (p.is_living === false) {
-    add("मृत्यु मिति (वि.सं.)", neDate(p.death_bs) || "दिवङ्गत");
+    add("मृत्यु मिति (वि.सं.)", dateProof(p.death_bs, p.death_exact) || "दिवङ्गत");
+    if (p.birth_exact && p.death_exact && age) add("मृत्युमा उमेर", age);
     add("मृत्यु स्थान", p.death_place);
   }
   add("हालको ठेगाना", p.is_living === false ? "" : g.addrOf(p));
@@ -27,7 +29,7 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
   add("पेशा", p.occupation);
   add("कार्यरत संस्था", p.organization);
   add("बैवाहिक स्थिति", p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : "");
-  add("विवाह मिति (वि.सं.)", neDate(p.marriage_bs));
+  add("विवाह मिति (वि.सं.)", dateProof(p.marriage_bs, p.marriage_exact));
   const sp = g.spousesOf(p).map((id) => g.byId[id]).filter(Boolean);
   add(p.gender === "F" ? "पति" : p.gender === "M" ? "पत्नी" : "जीवनसाथी", sp.map((x) => (opts.nm ? opts.nm(x) : x.name)).join(", "));
   add("फोन", p.phone);

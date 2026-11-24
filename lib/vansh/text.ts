@@ -31,6 +31,10 @@ export const LABEL: Record<string, string> = {
   education: "शिक्षा ",
   occupation: "पेशा ",
   marriage_bs: "विवाह मिति (BS) ",
+  birth_exact: "जन्म मिति प्रमाणित ",
+  death_exact: "मृत्यु मिति प्रमाणित ",
+  marriage_exact: "विवाह मिति प्रमाणित ",
+  birth_time: "जन्म समय ",
   marital_status: "बैवाहिक स्थिति ",
   organization: "कार्यरत संस्था ",
   photo_url: "प्रोफाइल फोटो ",
@@ -123,6 +127,13 @@ export function match(text: unknown, q: string): boolean {
 export const surnameOf = (n?: string | null): string => {
   const w = String(n || "").trim().split(/\s+/).filter(Boolean);
   return w.length > 1 ? w[w.length - 1] : "";
+};
+
+/** A child written with a first name only takes the father's surname ("सरोज" + "हरि बराल" → "सरोज बराल"). */
+export const withFatherSurname = (name: string, fatherName?: string | null): string => {
+  const n = name.trim();
+  const s = surnameOf(fatherName);
+  return n && s && !/\s/.test(n) ? `${n} ${s}` : n;
 };
 
 export interface WifeNames {

@@ -8,7 +8,7 @@ import { ORDER, ROLE_L } from "@/lib/vansh/graph";
 import {
   GOT, buildKidRequests, buildPersonPayload, makeRequest, type KidDraft,
 } from "@/lib/vansh/requests";
-import { MARITAL_OPTIONS, ageN, fbOk, np, oppositeGender, surnameOf, wifeNames, yr } from "@/lib/vansh/text";
+import { MARITAL_OPTIONS, ageN, fbOk, np, oppositeGender, surnameOf, wifeNames, withFatherSurname, yr } from "@/lib/vansh/text";
 import { checkNewDocs, openDoc, uploadDocs } from "@/lib/vansh/docs";
 import { genNo, relMap } from "@/lib/vansh/relations";
 import { VIRTUAL_ME, withAnchor } from "@/lib/vansh/kinship";
@@ -16,7 +16,7 @@ import { BRANCH_LEVELS, branchPrint } from "@/lib/vansh/branchPrint";
 import { loadPhotos } from "@/lib/vansh/exporters";
 import { DownloadPreview, useStampMaker } from "./DownloadPreview";
 import { useVansh } from "./VanshContext";
-import { Avatar, DateField, PasswordField, Sx, SXMSG, personOptions, useSx } from "./ui";
+import { Avatar, DateField, PasswordField, ProofBox, Sx, SXMSG, personOptions, useSx } from "./ui";
 
 const siteUrl = () => `${location.origin}${location.pathname}`;
 
@@ -145,6 +145,10 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [living, setLiving] = useState(v.is_living !== false);
   const [birth, setBirth] = useState(v.birth_bs || "");
   const [death, setDeath] = useState(v.death_bs || "");
+  const [birthExact, setBirthExact] = useState(!!v.birth_exact);
+  const [deathExact, setDeathExact] = useState(!!v.death_exact);
+  const [marriageExact, setMarriageExact] = useState(!!v.marriage_exact);
+  const [birthTime, setBirthTime] = useState(v.birth_time || "");
   const [birthPlace, setBirthPlace] = useState(v.birth_place || "");
   const [deathPlace, setDeathPlace] = useState(v.death_place || "");
   const [education, setEducation] = useState(v.education || "");
@@ -235,7 +239,9 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
     try {
       // use the surname-adjusted names exactly as the original did at submit time
       const mn = marriedNames();
-      const finalName = mn?.name ?? name;
+      // a child added with a first name only takes the father's surname
+      const fatherNm = father.value ? byId[father.value]?.name : father.newName;
+      const finalName = mn?.name ?? (action === "add" ? withFatherSurname(name, fatherNm) : name);
       const finalMaiden = mn?.maiden ?? maiden;
       const finalMarried = mn?.married ?? marriedName;
 
@@ -269,6 +275,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               maiden_name: finalMaiden, married_name: finalMarried, birth_place: birthPlace,
               death_place: deathPlace, education, occupation, organization, marital_status: marital,
               marriage_bs: married ? marriageBs : "",
+              birth_exact: birthExact, death_exact: deathExact, marriage_exact: married && marriageExact, birth_time: birthTime,
             },
           },
           fbOk
@@ -369,6 +376,11 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             <div>
               <label>जन्म मिति</label>
               <DateField value={birth} onChange={setBirth} />
+              <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
+              <label className="btime">
+                <span>जन्म समय <small className="mut">(थाहा भए)</small></span>
+                <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} />
+              </label>
             </div>
             <label>
               जन्म स्थान
@@ -394,6 +406,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <div>
                 <label>विवाह मिति</label>
                 <DateField value={marriageBs} onChange={setMarriageBs} />
+                <ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} />
                 {v.more_spouse_ids?.length ? (
                   <small className="mut">एकभन्दा बढी जोडी भएकाले यो मिति मुख्य जोडीको मात्र हो; अर्को जोडीसँग स्वतः मिल्दैन।</small>
                 ) : spouse.value || spouse.newName ? (
@@ -416,6 +429,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <div>
                 <label>मृत्यु मिति</label>
                 <DateField value={death} onChange={setDeath} />
+                <ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} />
               </div>
               <label>
                 मृत्यु स्थान
@@ -610,7 +624,7 @@ export function KidsDialog({ parent }: { parent: VPerson }) {
           onClick={async () => {
             if (!me) return;
             if (!perms.canEdit(parent.id)) return setErr("यो व्यक्ति तपाईंको सम्पादन क्षेत्रमा हुनुहुन्न।");
-            const r = buildKidRequests(me, parent, other, kids, note, sp.length);
+            const r = buildKidRequests(me, parent, other, kids, note, sp.length, parent.gender === "F" ? g.byId[other]?.name : parent.name);
             if (r.error || !r.requests) return setErr(r.error || "");
             const e = await submit(r.requests, `✅ ${r.requests.length} सन्तानको अनुरोध पठाइयो`);
             if (e) setErr(e);

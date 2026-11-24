@@ -59,6 +59,30 @@ const FEATURES: { h: string; p: string }[] = [
   { h: "इन्टरनेट नभए पनि", p: "एप इन्स्टल गरेपछि पछिल्लो डाटा अफलाइन हेर्न मिल्छ।" },
 ];
 
+function Band({ cls }: { cls: string }) {
+  return (
+        <div className={"band " + cls} aria-label="यो साइटका चार आधार">
+      <svg className="torn" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true">
+        <path d={tornPath(1440, 80, 40, 18, 16, 11)} fill="#313d24" opacity=".35" transform="translate(0 -5)" />
+        <path d={tornPath(1440, 80, 40, 16, 14, 3)} fill="#313d24" />
+      </svg>
+      <ul className="promises">
+        {PROMISES.map((x) => (
+          <li key={x.h}>
+            <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke="#d9b36a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {x.icon}
+            </svg>
+            <div>
+              <h2>{x.h}</h2>
+              <p>{x.p}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <PageShell active="home">
@@ -99,25 +123,7 @@ export default function HomePage() {
           </figure>
         </div>
         </MemberHero>
-        <div className="band" aria-label="यो साइटका चार आधार">
-          <svg className="torn" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true">
-            <path d={tornPath(1440, 80, 40, 18, 16, 11)} fill="#313d24" opacity=".35" transform="translate(0 -5)" />
-            <path d={tornPath(1440, 80, 40, 16, 14, 3)} fill="#313d24" />
-          </svg>
-          <ul className="promises">
-            {PROMISES.map((x) => (
-              <li key={x.h}>
-                <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke="#d9b36a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  {x.icon}
-                </svg>
-                <div>
-                  <h2>{x.h}</h2>
-                  <p>{x.p}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Band cls="band-top" />
       </section>
 
       <MemberDash />
@@ -168,6 +174,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* for signed-in members the four pillars matter less than their own family, so they sit at the end */}
+      <Band cls="band-end" />
     </PageShell>
   );
 }

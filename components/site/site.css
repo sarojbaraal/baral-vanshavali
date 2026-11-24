@@ -92,3 +92,8 @@
 html[data-auth="1"] .sn-wait .sn-menu, html[data-auth="1"] .sn-wait .sn-end { visibility: hidden; }
 html[data-auth="1"] .mh-wait { visibility: hidden; }
 html[data-auth="1"] [data-pub] { display: none; }
+
+/* the four pillars: under the hero for visitors, at the end of the page for signed-in members */
+.band-end { display: none; }
+html[data-auth="1"] .band-end { display: block; margin-top: clamp(3.4rem, 7vw, 5.4rem); }
+html[data-auth="1"] .band-top { display: none; }

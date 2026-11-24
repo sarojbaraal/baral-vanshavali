@@ -1,7 +1,7 @@
 // Bikram Sambat helpers: AD → BS conversion (so dates can be typed in either calendar) and display in Nepali.
 // Everything is stored and shown in BS; AD is only an input convenience.
 import { adToBs, bsToAd } from "@sbmdkl/nepali-date-converter";
-import { MONTHS_NE, na, np } from "./text";
+import { MONTHS_NE, ageN, na, np } from "./text";
 
 /** Range the conversion tables cover. */
 export const AD_MIN_YEAR = 1924;
@@ -60,4 +60,60 @@ export function daysUntilBs(stored: string | null | undefined, now: Date = new D
     if (diff >= 0) return diff;
   }
   return null;
+}
+
+/** Days in a BS month (from the conversion tables), or null outside them. */
+function bsMonthDays(y: number, m: number): number | null {
+  const a = bsToAdStr(`${y}-${z(m)}-01`);
+  const b = m === 12 ? bsToAdStr(`${y + 1}-01-01`) : bsToAdStr(`${y}-${z(m + 1)}-01`);
+  if (!a || !b) return null;
+  return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+}
+
+/** Exact age as years / months / days between two full BS dates (end defaults to today). Null when either date is incomplete. */
+export function ageYMD(birth?: string | null, end?: string | null, now: Date = new Date()): { y: number; m: number; d: number } | null {
+  const p = (x?: string | null) => na(x || "").split("-").map((v) => parseInt(v, 10) || 0);
+  const [by, bm, bd] = p(birth);
+  if (!by || !bm || !bd) return null;
+  const e = end ? p(end) : todayBs(now);
+  if (!e || !e[0] || !e[1] || !e[2]) return null;
+  let [y, m, d] = [e[0] - by, e[1] - bm, e[2] - bd];
+  if (d < 0) {
+    m--;
+    const pm = e[1] === 1 ? 12 : e[1] - 1;
+    d += bsMonthDays(pm === 12 && e[1] === 1 ? e[0] - 1 : e[0], pm) ?? 30;
+  }
+  if (m < 0) { y--; m += 12; }
+  return y < 0 ? null : { y, m, d };
+}
+
+/** "३५ वर्ष ४ महिना १२ दिन" (zero parts are left out). */
+export function ageText(a: { y: number; m: number; d: number }): string {
+  return [a.y ? `${np(a.y)} वर्ष` : "", a.m ? `${np(a.m)} महिना` : "", a.d ? `${np(a.d)} दिन` : ""].filter(Boolean).join(" ") || "० दिन";
+}
+
+/** "04:30" → "बिहान ४:३० बजे" */
+export function neTime(t?: string | null): string {
+  const m = /^(\d{2}):(\d{2})$/.exec(t || "");
+  if (!m) return "";
+  const h = +m[1];
+  const part = h < 4 ? "राति" : h < 12 ? "बिहान" : h < 16 ? "दिउँसो" : h < 20 ? "साँझ" : "राति";
+  return `${part} ${np(h % 12 || 12)}:${m[2].replace(/\d/g, (c) => np(c))} बजे`;
+}
+
+/** Date in words with its proof mark: "२०४५ भदौ १२ ✔ प्रमाणित" or "२०४५ भदौ १२ (अनुमानित)". Empty date → "". */
+export function dateProof(date?: string | null, exact?: boolean | null): string {
+  const t = neDate(date);
+  return t ? `${t} ${exact ? "✔ प्रमाणित" : "(अनुमानित)"}` : "";
+}
+
+/** The age to show: years / months / days when the birth date is proven (and the end date too, for the dead), else whole years. */
+export function ageLabel(p: { birth_bs?: string | null; death_bs?: string | null; birth_exact?: boolean | null; death_exact?: boolean | null; is_living?: boolean | null }, now: Date = new Date()): string {
+  const living = p.is_living !== false;
+  if (p.birth_exact && (living || p.death_exact)) {
+    const a = ageYMD(p.birth_bs, living ? null : p.death_bs, now);
+    if (a) return ageText(a);
+  }
+  const y = ageN(p.birth_bs, living ? null : p.death_bs, now);
+  return y == null ? "" : `${np(y)} वर्ष`;
 }

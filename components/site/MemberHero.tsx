@@ -6,7 +6,7 @@ import React, { useMemo } from "react";
 import Link from "next/link";
 import { createGraph } from "@/lib/vansh/graph";
 import { useMember } from "./useMember";
-import { familyEvents, whenLabel } from "@/lib/vansh/events";
+import { HeroOccasions, HeroStory } from "./HeroPanels";
 import { treeArtSvg } from "@/lib/vansh/treeArt";
 import { fatherLine } from "@/lib/vansh/profileFacts";
 import { genNo } from "@/lib/vansh/relations";
@@ -21,11 +21,6 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
     () => (g && me ? treeArtSvg(g, me, { maxSibs: 3, maxKids: 4 }) : null),
     [g, me]
   );
-  const today = useMemo(() => {
-    if (!d || !me) return null;
-    return familyEvents(d.people, { can: (id) => !d.people.find((x) => x.id === id)?.is_locked, meId: me.id }).own;
-  }, [d, me]);
-
   // until the session is known a signed-in member's page keeps the public hero's space but not its look (html[data-auth])
   if (!d || !g) return <div className="mh-wait">{children}</div>;
   if (!me || !tree) {
@@ -40,6 +35,7 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
             <Link className="btn" href="/app?do=kin">आफ्नो स्थान छान्नुहोस्</Link>
             <Link className="btn ghost" href="/app?tab=tree">वंशावली हेर्नुहोस्</Link>
           </div>
+          <div className="hp-grid"><HeroOccasions /></div>
         </div>
       </div>
     );
@@ -65,9 +61,10 @@ export default function MemberHero({ children }: { children: React.ReactNode }) 
           <li><b>{np(kids)}</b> सन्तान</li>
           <li><b>{np(open)}</b> सदस्य तपाईंले हेर्न मिल्ने</li>
         </ul>
-        {today && today.days >= 0 && today.days <= 30 && (
-          <p className="mh-note">🎂 तपाईंको जन्मदिन {whenLabel(today.days)}{today.detail ? ` · ${today.detail}` : ""}</p>
-        )}
+        <div className="hp-grid">
+          <HeroStory />
+          <HeroOccasions />
+        </div>
         <div className="row">
           <Link className="btn" href="/app?tab=me">मेरो प्रोफाईल</Link>
           <Link className="btn ghost" href="/app?tab=tree">वृक्षमा मेरो स्थान</Link>
