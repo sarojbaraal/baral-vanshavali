@@ -294,6 +294,33 @@ export function DialogHost() {
     if (!dialog && d.open) d.close();
     if (!dialog) { setOff({ x: 0, y: 0 }); setPeek(false); }
   }, [dialog]);
+  // Phones: the on-screen keyboard leaves the dialog at a stale size (dvh does not always recover when
+  // it hides). Size the full-screen dialog from the visual viewport instead, and re-measure on every change.
+  useEffect(() => {
+    if (!dialog) return;
+    const vv = window.visualViewport;
+    const root = document.documentElement;
+    const upd = () => {
+      root.style.setProperty("--vvh", (vv?.height || innerHeight) + "px");
+      root.style.setProperty("--vvt", (vv?.offsetTop || 0) + "px");
+    };
+    const later = () => { setTimeout(upd, 120); setTimeout(upd, 400); };
+    upd();
+    vv?.addEventListener("resize", upd);
+    vv?.addEventListener("scroll", upd);
+    addEventListener("resize", upd);
+    document.addEventListener("focusout", later);
+    document.addEventListener("focusin", later);
+    return () => {
+      vv?.removeEventListener("resize", upd);
+      vv?.removeEventListener("scroll", upd);
+      removeEventListener("resize", upd);
+      document.removeEventListener("focusout", later);
+      document.removeEventListener("focusin", later);
+      root.style.removeProperty("--vvh");
+      root.style.removeProperty("--vvt");
+    };
+  }, [dialog]);
   const moved = off.x !== 0 || off.y !== 0;
   return (
     <dialog
