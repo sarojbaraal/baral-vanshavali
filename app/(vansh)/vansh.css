@@ -1033,8 +1033,8 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .edb .seg2 .rad label:has(input:focus-visible) { outline: 2px solid var(--mg); outline-offset: -2px; }
 .dtf { min-width: 0; }
 .dmeta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; margin-top: .45rem; }
-.proof { display: inline-flex; align-items: center; gap: .4rem; margin: 0; padding: .22rem .7rem .22rem .3rem; border: 1px solid var(--line-2); border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--mut, #6b7280); cursor: pointer; user-select: none; }
-.proof input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.proof { position: relative; display: inline-flex; align-items: center; gap: .4rem; margin: 0; padding: .22rem .7rem .22rem .3rem; border: 1px solid var(--line-2); border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--mut, #6b7280); cursor: pointer; user-select: none; }
+.proof input { position: absolute; left: 0; top: 0; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
 .proof .pbx { display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem; border: 1.5px solid currentColor; border-radius: 50%; font-size: .7rem; line-height: 1; }
 .proof.on { color: #1f6b3d; border-color: #1f8a4c; background: color-mix(in srgb, #1f8a4c 10%, transparent); }
 .proof.on .pbx { background: #1f8a4c; border-color: #1f8a4c; color: #fff; }
