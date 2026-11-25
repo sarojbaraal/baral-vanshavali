@@ -1115,3 +1115,14 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 @media (max-width: 640px) {
   button.sheet-handle { min-height: 0; height: 4px; width: 40px; box-shadow: none; background: var(--line-2); display: block; }
 }
+
+/* phone with the keyboard open (short visible height): give the fields the room */
+@media (max-width: 640px) and (max-height: 620px) {
+  .eds { display: none; }
+  .edw { grid-template-rows: minmax(0, 1fr); }
+  .edb { padding-top: .6rem; }
+  .edb h2 { margin-top: .2rem; font-size: 1.1rem; }
+  .edb .sech { position: static; margin: .8rem 0 .1rem; padding: 0; background: none; }
+  .edf { padding: .45rem 1rem calc(.45rem + env(safe-area-inset-bottom)); box-shadow: none; }
+  .edf button { min-height: 40px; padding-top: .35rem; padding-bottom: .35rem; }
+}
