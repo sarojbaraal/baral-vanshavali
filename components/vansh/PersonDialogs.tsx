@@ -148,6 +148,10 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [birthExact, setBirthExact] = useState(!!v.birth_exact);
   const [deathExact, setDeathExact] = useState(!!v.death_exact);
   const [marriageExact, setMarriageExact] = useState(!!v.marriage_exact);
+  const [divorceBs, setDivorceBs] = useState(v.divorce_bs || "");
+  const [divorceExact, setDivorceExact] = useState(!!v.divorce_exact);
+  const [deathTithi, setDeathTithi] = useState(v.death_tithi || "");
+  const [deathReason, setDeathReason] = useState(v.death_reason || "");
   const [birthTime, setBirthTime] = useState(v.birth_time || "");
   const [birthPlace, setBirthPlace] = useState(v.birth_place || "");
   const [deathPlace, setDeathPlace] = useState(v.death_place || "");
@@ -156,6 +160,14 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
   const [organization, setOrganization] = useState(v.organization || "");
   const [docs, setDocs] = useState<PersonDoc[]>(v.documents || []);
   const [newDocs, setNewDocs] = useState<File[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const addFiles = (fl: File[]) => {
+    if (!fl.length) return;
+    const msg = checkNewDocs(docs.length + newDocs.length, fl);
+    if (msg) return setErr(msg);
+    setErr("");
+    setNewDocs((l) => [...l, ...fl]);
+  };
   const [marriageBs, setMarriageBs] = useState(v.marriage_bs || "");
   const [phone, setPhone] = useState(v.phone || "");
   const [fb, setFb] = useState(v.facebook || "");
@@ -276,6 +288,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               death_place: deathPlace, education, occupation, organization, marital_status: marital,
               marriage_bs: married ? marriageBs : "",
               birth_exact: birthExact, death_exact: deathExact, marriage_exact: married && marriageExact, birth_time: birthTime,
+              divorce_bs: marital === "divorced" ? divorceBs : "", divorce_exact: marital === "divorced" && divorceExact, death_tithi: living ? "" : deathTithi, death_reason: living ? "" : deathReason,
             },
           },
           fbOk
@@ -346,7 +359,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               return (
                 <>
                   {rl && <span>💠 {rl === "तपाईं" ? "तपाईं" : "तपाईंको " + rl}</span>}
-                  <span>🧬 Gen {np(genNo(g, p.id))}{age != null ? " · उमेर " + np(age) + " वर्ष" : ""}</span>
+                  <span>🧬 पुस्ता# {np(genNo(g, p.id))}{age != null ? " · उमेर " + np(age) + " वर्ष" : ""}</span>
                   {address && <span>📍 {address}</span>}
                 </>
               );
@@ -358,36 +371,55 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
         <button type="button" className="ghost pp-x" aria-label="बन्द" onClick={closeDialog}>×</button>
         <div className="edb">
           <h2>{title}</h2>
-          <div className="rad">
-            {radio("gx", "M", "पुरुष", gender, setGender)}
-            {radio("gx", "F", "महिला", gender, setGender)}
-            {radio("gx", "O", "अन्य / अज्ञात", gender, setGender)}
+          <div className="sech first">व्यक्तिगत</div>
+          <div className="nrow">
+            <label className="nm">
+              नाम
+              <input value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <div>
+              <span className="fl">लिङ्ग</span>
+              <div className="rad seg">
+                {radio("gx", "M", "पुरुष", gender, setGender)}
+                {radio("gx", "F", "महिला", gender, setGender)}
+                {radio("gx", "O", "अन्य", gender, setGender)}
+              </div>
+            </div>
+            <div>
+              <span className="fl">अवस्था</span>
+              <div className="rad seg">
+                {radio("lv", "true", "जीवित", String(living), (x) => setLiving(x === "true"))}
+                {radio("lv", "false", "दिवंगत", String(living), (x) => setLiving(x === "true"))}
+              </div>
+            </div>
           </div>
           {sameGender && <p className="mut" style={{ margin: ".4rem 0 0" }}>⚠ दुवैको लिङ्ग एउटै छ — पति/पत्नीको लिङ्ग जाँच्नुहोस्।</p>}
-          <label style={{ marginTop: ".9rem" }}>
-            नाम
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
           <div className="pcw">
             <PhotoCrop ref={cropRef} bare onChange={setPhoto} current={v.photo_url} />
           </div>
-          <hr />
+          <div className="sech">जन्म</div>
           <div className="edg">
-            <div>
-              <label>जन्म मिति</label>
-              <DateField value={birth} onChange={setBirth} />
-              <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
-              <label className="btime">
-                <span>जन्म समय <small className="mut">(थाहा भए)</small></span>
-                <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} />
-              </label>
+            <div className="dtf wide">
+              <span className="fl">जन्म मिति</span>
+              <DateField
+                value={birth}
+                onChange={setBirth}
+                after={
+                  <>
+                    <ProofBox checked={birthExact} onChange={setBirthExact} disabled={!birth} />
+                    <label className="btime">
+                      <span>समय</span>
+                      <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} aria-label="जन्म समय (थाहा भए)" />
+                    </label>
+                  </>
+                }
+              />
             </div>
             <label>
               जन्म स्थान
               <input value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
             </label>
           </div>
-          <hr />
           <div className="sech">विवाह</div>
           <label>
             बैवाहिक स्थिति
@@ -403,40 +435,51 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <Sx st={spouse} options={opts} allowNew />
             </label>
             <div className="edg">
-              <div>
-                <label>विवाह मिति</label>
-                <DateField value={marriageBs} onChange={setMarriageBs} />
-                <ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} />
+              <div className="dtf">
+                <span className="fl">विवाह मिति</span>
+                <DateField value={marriageBs} onChange={setMarriageBs} after={<ProofBox checked={marriageExact} onChange={setMarriageExact} disabled={!marriageBs} />} />
                 {v.more_spouse_ids?.length ? (
                   <small className="mut">एकभन्दा बढी जोडी भएकाले यो मिति मुख्य जोडीको मात्र हो; अर्को जोडीसँग स्वतः मिल्दैन।</small>
                 ) : spouse.value || spouse.newName ? (
                   <small className="mut">पति/पत्नी दुवैको विवाह मिति एउटै हुन्छ — एकमा राख्दा दुवैमा सच्चिन्छ।</small>
                 ) : null}
               </div>
-              <label hidden={gender !== "F"}>
-                विवाहपछिको थर (पतिको थरबाट स्वतः)
-                <input value={marriedName} onChange={(e) => onMarriedName(e.target.value)} />
-              </label>
+              {marital === "divorced" && (
+                <div className="dtf">
+                  <span className="fl">सम्बन्ध विच्छेद मिति</span>
+                  <DateField value={divorceBs} onChange={setDivorceBs} after={<ProofBox checked={divorceExact} onChange={setDivorceExact} disabled={!divorceBs} />} />
+                </div>
+              )}
             </div>
-          </div>
-          <hr />
-          <div className="rad">
-            {radio("lv", "true", "जीवित", String(living), (x) => setLiving(x === "true"))}
-            {radio("lv", "false", "दिवंगत", String(living), (x) => setLiving(x === "true"))}
+            <label hidden={gender !== "F"}>
+              विवाहपछिको थर (पतिको थरबाट स्वतः)
+              <input value={marriedName} onChange={(e) => onMarriedName(e.target.value)} />
+            </label>
           </div>
           <div hidden={living}>
+            <div className="sech">मृत्यु</div>
             <div className="edg">
-              <div>
-                <label>मृत्यु मिति</label>
-                <DateField value={death} onChange={setDeath} />
-                <ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} />
+              <div className="dtf">
+                <span className="fl">मृत्यु मिति</span>
+                <DateField value={death} onChange={setDeath} after={<ProofBox checked={deathExact} onChange={setDeathExact} disabled={!death} />} />
               </div>
+              <label>
+                मृत्यु तिथि
+                <input value={deathTithi} maxLength={60} onChange={(e) => setDeathTithi(e.target.value)} placeholder="जस्तै: भाद्र शुक्ल पञ्चमी" />
+              </label>
+            </div>
+            <div className="edg">
               <label>
                 मृत्यु स्थान
                 <input value={deathPlace} onChange={(e) => setDeathPlace(e.target.value)} />
               </label>
+              <label>
+                मृत्युको कारण
+                <input value={deathReason} maxLength={120} onChange={(e) => setDeathReason(e.target.value)} placeholder="जस्तै: बिरामी, दुर्घटना" />
+              </label>
             </div>
           </div>
+          <div className="sech">शिक्षा र पेशा</div>
           <div className="edg">
             <label>
               शिक्षा
@@ -451,7 +494,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             कार्यरत संस्था
             <input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="जस्तै: विद्यालय, बैंक, कार्यालयको नाम" />
           </label>
-          <hr />
           <div className="sech">परिवार</div>
           <div className="edg">
             <label>
@@ -463,7 +505,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               <Sx st={mother} options={opts} allowNew />
             </label>
           </div>
-          <hr />
           <div className="sech">सम्पर्क</div>
           <div className="edg">
             <label>
@@ -484,7 +525,6 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
             हालको ठेगाना
             <input value={address} onChange={(e) => setAddress(e.target.value)} />
           </label>
-          <hr />
           <label>
             टिप्पणी
             <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -508,21 +548,23 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
               ))}
             </ul>
           )}
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            multiple
-            aria-label="PDF थप्ने"
-            onChange={(e) => {
-              const fl = Array.from(e.target.files || []);
-              e.target.value = "";
-              if (!fl.length) return;
-              const msg = checkNewDocs(docs.length + newDocs.length, fl);
-              if (msg) return setErr(msg);
-              setErr("");
-              setNewDocs((l) => [...l, ...fl]);
-            }}
-          />
+          <label
+            className={"dz" + (dragOver ? " over" : "")}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
+          >
+            <span className="dz-i" aria-hidden="true">📎</span>
+            <b>PDF यहाँ तान्नुहोस्</b>
+            <small>वा थिचेर फाइल छान्नुहोस्</small>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              multiple
+              aria-label="PDF थप्ने"
+              onChange={(e) => { const fl = Array.from(e.target.files || []); e.target.value = ""; addFiles(fl); }}
+            />
+          </label>
           <Note label="एडमिनलाई सन्देश (स्रोत/प्रमाण)" value={nt} onChange={setNt} />
           <div className="msg" id="fm">{err}</div>
         </div>

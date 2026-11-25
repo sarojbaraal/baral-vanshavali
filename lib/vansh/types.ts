@@ -31,6 +31,11 @@ export interface VPerson {
   marriage_exact?: boolean | null;
   /** "HH:MM" (24 h), when the birth time is known */
   birth_time?: string | null;
+  divorce_bs?: string | null;
+  divorce_exact?: boolean | null;
+  /** तिथि of the death, free text */
+  death_tithi?: string | null;
+  death_reason?: string | null;
   phone?: string | null;
   address?: string | null;
   notes?: string | null;

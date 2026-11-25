@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getSiteAvatars, subscribeSiteAvatars } from "@/lib/vansh/avatars";
 import { composeDate, match, MONTHS_NE, na, np } from "@/lib/vansh/text";
-import { AD_MAX_YEAR, AD_MIN_YEAR, adToBsStr, neDate } from "@/lib/vansh/bs";
+import { AD_MAX_YEAR, AD_MIN_YEAR, adToBsStr, bsToAdStr, neDate } from "@/lib/vansh/bs";
 import type { VPerson } from "@/lib/vansh/types";
 import type { Graph, Perms } from "@/lib/vansh/graph";
 import { useVansh } from "./VanshContext";
@@ -202,7 +202,7 @@ function fmtDate(digits: string): string {
   return [y, m, d].filter((x, i) => x || i === 0).join("-");
 }
 
-export function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function DateField({ value, onChange, after }: { value: string; onChange: (v: string) => void; after?: React.ReactNode }) {
   const initial = String(value || "").replace(/(-00)+$/, "");
   const [text, setText] = useState(np(initial));
   // the date can be typed in BS (default) or AD; it is always stored and shown as BS in Nepali digits
@@ -237,7 +237,8 @@ export function DateField({ value, onChange }: { value: string; onChange: (v: st
   const switchTo = (toAd: boolean) => {
     if (toAd === ad) return;
     setAd(toAd);
-    if (toAd) setText(""); // AD is typed fresh; the existing BS value stays until a valid AD date replaces it
+    // the date already entered is converted to the other calendar (only a complete date can be converted)
+    if (toAd) setText(np(bsToAdStr(String(value || "")) || ""));
     else setText(np(String(value || "").replace(/(-00)+$/, "")));
   };
   const finish = () => {
@@ -249,22 +250,27 @@ export function DateField({ value, onChange }: { value: string; onChange: (v: st
   };
   return (
     <div className="dtr1">
-      <div className="dmode" role="group" aria-label="मितिको प्रकार">
-        <button type="button" className={ad ? "" : "on"} onClick={() => switchTo(false)}>वि.सं.</button>
-        <button type="button" className={ad ? "on" : ""} onClick={() => switchTo(true)}>ई.सं. (AD)</button>
+      <div className="dtrow">
+        <div className="dbox">
+          <input
+            className="dsingle"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={10}
+            placeholder={ad ? "YYYY-MM-DD (ई.सं.)" : "बर्ष-महिना-गते"}
+            aria-label={ad ? "मिति (ई.सं.)" : "मिति (वि.सं.)"}
+            aria-invalid={bad ? true : undefined}
+            value={text}
+            onChange={(e) => change(e.target.value)}
+            onBlur={finish}
+          />
+          <div className="dmode" role="group" aria-label="मितिको प्रकार">
+            <button type="button" className={ad ? "" : "on"} onClick={() => switchTo(false)}>BS</button>
+            <button type="button" className={ad ? "on" : ""} onClick={() => switchTo(true)}>AD</button>
+          </div>
+        </div>
+        {after}
       </div>
-      <input
-        className="dsingle"
-        inputMode="numeric"
-        autoComplete="off"
-        maxLength={10}
-        placeholder={ad ? "YYYY-MM-DD (ई.सं., जस्तै 1988-06-02)" : "बर्ष-महिना-गते (जस्तै २०४५-०५-१२)"}
-        aria-label={ad ? "मिति (ई.सं.)" : "मिति (वि.सं.)"}
-        aria-invalid={bad ? true : undefined}
-        value={text}
-        onChange={(e) => change(e.target.value)}
-        onBlur={finish}
-      />
       {ad && conv && !bad && <small className="mut">= {neDate(conv)} (वि.सं.) — बाहिर थिचेपछि यही देखिन्छ</small>}
       {ad && !conv && !bad && <small className="mut">पूरा मिति (वर्ष-महिना-गते) लेख्नुहोस्</small>}
       {!ad && y.length === 4 && m.length === 2 && +m === 0 && !bad && <small className="mut">{np(y)} साल (महिना/गते थाहा छैन)</small>}
@@ -347,7 +353,8 @@ export function ProofBox({ checked, onChange, disabled }: { checked: boolean; on
   return (
     <label className={"proof" + (checked ? " on" : "")}>
       <input type="checkbox" checked={checked && !disabled} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
-      <span>✔ प्रमाणित मिति <small className="mut">(नटिक भए अनुमानित मानिन्छ)</small></span>
+      <span className="pbx" aria-hidden="true">{checked && !disabled ? "✓" : ""}</span>
+      <span>{checked && !disabled ? "प्रमाणित" : "अनुमानित"}</span>
     </label>
   );
 }

@@ -55,10 +55,14 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
   if (!cur.birth_bs) cur.birth_exact = false;
   if (!cur.death_bs || cur.is_living) cur.death_exact = false;
   if (!cur.marriage_bs) cur.marriage_exact = false;
+  if (cur.marital_status !== "divorced") cur.divorce_bs = "";
+  if (!cur.divorce_bs) cur.divorce_exact = false;
   if (cur.birth_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cur.birth_time))) return { error: "जन्म समय मिलेन (जस्तै ०४:३०)।" };
   if (cur.is_living) {
     cur.death_bs = "";
     cur.death_place = "";
+    cur.death_tithi = "";
+    cur.death_reason = "";
   }
   if (cur.gender !== "F") {
     cur.maiden_name = "";
@@ -70,7 +74,7 @@ export function buildPersonPayload(inp: FormInput, fbOkFn: (u: string) => boolea
     cur.spouse_id = p?.spouse_id || "";
     cur.spouse_name = "";
   }
-  for (const k of ["birth_bs", "death_bs", "marriage_bs"]) {
+  for (const k of ["birth_bs", "death_bs", "marriage_bs", "divorce_bs"]) {
     // Dates already stored in another shape (e.g. year only) are accepted until the user edits them.
     const unchanged = !!p && String(cur[k]) === String((p as unknown as Record<string, unknown>)[k] ?? "");
     if (cur[k] && !unchanged && !DATE_RE.test(String(cur[k]))) return { error: "मिति YYYY-MM-DD ढाँचामा हुनुपर्छ (साल ४ अंक)।" };
