@@ -8,11 +8,11 @@ import InvitePreview from "./InvitePreview";
 type Mode = "login" | "signup" | "forgot";
 const TITLE: Record<Mode, string> = { login: "स्वागतम् !", signup: "खाता बनाउनुहोस्", forgot: "पासवर्ड रिसेट" };
 const SUBTITLE: Record<Mode, string> = {
-  login: "तपाईंको वंशावली हेर्न लगईन गर्नुहोस्।",
-  signup: "आफ्नो परिवारको इतिहास सुरक्षित गर्नुहोस्",
-  forgot: "चिन्ता नगर्नुहोस्, हामी मद्दत गर्छौं",
+  login: "आफ्नो वंशावली हेर्न लगईन गर्नुहोस्।",
+  signup: "आफ्नो परिवारको इतिहास सुरक्षित राख्नुहोस्",
+  forgot: "पासवर्ड रिसेट गर्न आफ्नो ईमेल ठेगाना राख्नुहोस्, ईमेलमा रिसेट लिंक पठाईन्छ। ",
 };
-const BTN: Record<Mode, string> = { login: "लगइन गर्नुहोस्", signup: "खाता बनाउनुहोस्", forgot: "रिसेट लिंक पठाउनुहोस्" };
+const BTN: Record<Mode, string> = { login: "लगइन गर्नुहोस्", signup: "नयाँ खाता बनाउनुहोस्", forgot: "रिसेट लिंक पठाउनुहोस्" };
 
 /** Optional contact details asked at sign-up (stored on the profile, copied to the person on approval). */
 function ContactFields({ v, set, hint }: { v: { bd: string; ph: string; loc: string }; set: (k: "bd" | "ph" | "loc", x: string) => void; hint?: boolean }) {
@@ -89,7 +89,7 @@ export function AuthView() {
       } else if (mode === "signup") {
         const name = fn.trim();
         if (!name) return say("पूरा नाम लेख्नुहोस्।");
-        if (pw.length < 8) return say("पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ ल!");
+        if (pw.length < 8) return say("पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ");
         if (!token && (!cf.trim() || !cg.trim())) return say("बुबा र हजुरबुबाको नाम लेख्नुहोस् (थाहा नभए 'थाहा छैन' लेख्नुहोस्)।");
         if (!nudged && !ct.bd.trim() && !ct.ph.trim()) {
           setNudged(true);
@@ -107,12 +107,12 @@ export function AuthView() {
             ? error.message
             : token
             ? "खाता बन्यो। इमेल खोलेर ईन्बक्स र स्पाम दुबै चेक गर्नुहोस्, अनि लगइन गर्नुहोस्।"
-            : "तपाईंको एकाउन्ट बनेको छ। इमेल पुष्टि गर्न ईन्बक्स र स्पाम चेक गर्नुहोस्। एडमिनले स्वीकृत गरेपछि २४ घण्टा भित्रमा तपाईंले साइटमा पहुँच पाउनुहुनेछ।",
+            : "तपाईंको एकाउन्ट बनेको छ। इमेल पुष्टि गर्न ईन्बक्स र स्पाम चेक गर्नुहोस्। एडमिनले स्वीकृत गरेपछि तपाईंले साइटमा पहुँच पाउनुहुनेछ।",
           !error
         );
       } else {
         const { error } = await db.auth.resetPasswordForEmail(e, { redirectTo: siteUrl() });
-        say(error ? error.message : "यो इमेलको खातामा रिसेट लिंक पठाएको छ। इनबक्स र स्प्याम जाँच्नुहोस् त!", !error);
+        say(error ? error.message : "यो इमेलको खातामा रिसेट लिंक पठाएको छ। इनबक्स र स्प्याम जाँच्नुहोस्।", !error);
       }
     } finally {
       setBusy(false);
@@ -206,10 +206,10 @@ export function AuthView() {
             <p className="msg" style={{ color: inv.name ? "var(--success)" : undefined, textAlign: "center" }}>
               {inv.name ? (
                 <>
-                  🎟 तपाईंलाई <b>{inv.name}</b> को प्रोफाइलका लागि निम्तो आएको छ। लगइन वा खाता बनाउनुहोस्।
+                  🎟 तपाईंलाई <b>{inv.name}</b> को प्रोफाइलका लागि निम्तो आएको छ। लगइन गर्नुहोस् वा खाता बनाउनुहोस्।
                 </>
               ) : (
-                "यो निम्तो लिंक अमान्य छ वा म्याद सकिएको छ।"
+                "यो निम्तो लिंक गलत छ यसको वा म्याद सकिसकेको छ।"
               )}
             </p>
           )}
@@ -280,9 +280,9 @@ export function AuthView() {
               <>
                 {viaOauth ? (
                   <p className="mut" style={{ textAlign: "center", fontSize: "0.85rem" }}>
-                    पछिल्लो पटक Google/Facebook बाट लगइन गर्नुभएको थियो। पासवर्ड राख्न लगइनपछि माथिको खाता मेनु खोलेर “पासवर्ड परिवर्तन” थिच्नुहोस्।
+                    तपाईंले पछिल्लो पटक Google वा Facebook बाट लगइन गर्नुभएको थियो। पासवर्ड राख्न लगइनपछि माथिको खाता मेनु खोलेर “पासवर्ड परिवर्तन” थिच्नुहोस्।
                     <br />
-                    <button className="lnk" onClick={() => { try { localStorage.removeItem("vv_oauth"); } catch {} setViaOauth(false); }}>मसँग पासवर्ड छ</button>
+                    <button className="lnk" onClick={() => { try { localStorage.removeItem("vv_oauth"); } catch {} setViaOauth(false); }}>म सँग पासवर्ड छ</button>
                   </p>
                 ) : (
                   <p className="mut">
@@ -301,18 +301,18 @@ export function AuthView() {
             )}
           </div>
           <details className="auth-faq">
-            <summary>यो साइट के हो र मेरो डाटा कति सुरक्षित छ?</summary>
+            <summary>साईट सम्बन्धि बारम्वार सोधिने प्रश्नहरु (FAQ):</summary>
             <dl>
               <dt>यो साइट के हो?</dt>
-              <dd>बराल परिवारको वंशावली — को कसको छोरा/छोरी, को कुन पुस्ता र कसको कुन नाता हो भन्ने निजी परिवार-रेकर्ड। सार्वजनिक वेबसाइट होइन।</dd>
-              <dt>को के हेर्न सक्छ?</dt>
-              <dd>खाता बनाएपछि एडमिनले स्वीकृत गरेमा मात्र पहुँच खुल्छ। विवाहित छोरी-चेलीका ससुराली परिवारका शाखा साधारण सदस्यका लागि बन्द (नाम लुकेको) रहन्छन्।</dd>
+              <dd>यो बराल र बराल सँग जोडिएका परिवारहरुको वंशावली हो। को कसको छोरा/छोरी, को कुन पुस्ता र कसको कुन नाता हो भन्ने जानकारी सहितको निजी परिवारिक रेकर्ड हो । यो सार्वजनिक वेबसाइट होइन।</dd>
+              <dt>यो क-कसले हेर्न सक्छ?</dt>
+              <dd>कुनै ब्यक्तिले खाता बनाएपछि एडमिनले स्वीकृत गरेमा मात्र उसले वेबसाईटमा पहुँच पाउँछ। सदस्यले आफ्नो रोल अनुसार ‍अन्य सदस्यहरुलाई हेर्न मिल्छ। ब्यक्तिको परिचय अनुसार एडमिनले रोल निर्धारण गर्छ।</dd>
               <dt>इमेल र फोन कसले देख्छ?</dt>
-              <dd>इमेल र फोन नम्बर एडमिन/मोडरेटर र सम्बन्धित व्यक्ति आफैँले मात्र देख्न सक्छन्।</dd>
+              <dd>इमेल र फोन नम्बर कसले देख्ने र नदेख्ने भनेर गोपनियता सेटिङ बाट आफैले निर्धारण गर्न सकिन्छ।</dd>
               <dt>पासवर्ड र लगइन?</dt>
-              <dd>पासवर्ड Supabase Auth ले hash गरेर राख्छ — हामीले पढ्न सक्दैनौं। Google बाट पनि लगइन गर्न मिल्छ।</dd>
-              <dt>जो कसैले जे पनि बदल्न सक्छ?</dt>
-              <dd>सदस्यले गरेको सुझाव/परिवर्तन एडमिनले स्वीकृत गरेपछि मात्र वंशावलीमा लागू हुन्छ। डाटाबेसमै पहुँच नियम (RLS) लागू छ, त्यसैले ब्राउजरबाट बाइपास गर्न मिल्दैन।</dd>
+              <dd>पासवर्ड सिस्टमले ह्यास गरेर राख्ने हुदा यो कसैले पढ्न सक्दैन।</dd>
+              <dt>यहाँको जानकारी जो कसैले पनि बदल्न सक्छ?</dt>
+              <dd>सदस्यले गरेको सुझाव/परिवर्तन एडमिनले स्वीकृत गरेपछि मात्र वंशावलीमा लागू हुन्छ। डाटाबेसमै पहुँचमा RLS सुरक्षा लागू गरिएको छ, त्यसैले ब्राउजरबाट बाइपास गरेर पनि कसैको डेटा हेर्न मिल्दैन।</dd>
             </dl>
           </details>
           {mode === "signup" && (
@@ -333,7 +333,7 @@ export function ResetView() {
   const [msg, setMsg] = useState<{ t: string; ok?: boolean } | null>(null);
   const go = async () => {
     if (a.length < 8) return setMsg({ t: "पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ।" });
-    if (a !== b) return setMsg({ t: "दुईटा पासवर्ड मिलेन नि।" });
+    if (a !== b) return setMsg({ t: "दुईटा पासवर्ड मिलेन।" });
     const { error } = await db.auth.updateUser({ password: a, data: { must_change_password: false } });
     if (error) return setMsg({ t: error.message });
     setRecovering(false);
@@ -393,23 +393,23 @@ export function PosView() {
   return (
     <div className="card">
       <h2>तपाईं को हुनुहुन्छ? आफुलाई चिनाउनुहोस्</h2>
-      <p className="mut">एडमिनले तपाईंलाई वंशावलीमा चिनेर स्थान र भूमिका तोक्नेछन्।</p>
+      <p className="mut">एडमिनले तपाईंलाई वंशावलीमा चिनेर तपाईंको स्थान र भूमिका तोक्नेछन्।</p>
       <label>
         तपाईंको पूरा नाम
         <input value={n} onChange={(e) => setN(e.target.value)} />
       </label>
       <label>
-        तपाईंको बुबाको नाम के हो?
+        तपाईंको बुबाको नाम
         <input value={f} onChange={(e) => setF(e.target.value)} />
       </label>
       <label>
-        तपाईंको हजुरबुबाको नाम के हो?
+        तपाईंको हजुरबुबाको नाम
         <input value={gr} onChange={(e) => setGr(e.target.value)} />
       </label>
       <ContactFields v={ct} set={(k, x) => setCt((o) => ({ ...o, [k]: x }))} hint={nudged} />
       <Say m={msg} />
       <div className="row">
-        <button id="go" onClick={go}>पठाउने</button>
+        <button id="go" onClick={go}>पठाउनुहोस्</button>
       </div>
     </div>
   );
@@ -421,13 +421,13 @@ export function PendingView() {
     return (
       <div className="card">
         <h2>खाता निलम्बित छ</h2>
-        <p>एडमिनले तपाईंको खाता अस्थायी रूपमा रोकेका छन्। थप जानकारीका लागि एडमिनसँग सम्पर्क गर्नुहोस्।</p>
+        <p>तपाईंको खाता अस्थायी रूपमा निलम्नबन गरिएको छ। थप जानकारीका लागि एडमिनसँग सम्पर्क गर्नुहोस्।</p>
       </div>
     );
   return (
     <div className="card">
       <h2>स्वीकृतिको पर्खाइमा</h2>
-      <p>तपाईंको एकाउन्ट बनेको छ। एडमिनले स्वीकृत गरेपछि २४ घण्टा भित्रमा तपाईंले साइटमा पहुँच पाउनुहुनेछ।</p>
+      <p>तपाईंको एकाउन्ट बनिसकेको छ। एडमिनले स्वीकृत गरेपछि तपाईंले साइटमा पहुँच पाउनुहुनेछ।</p>
       <p className="mut">
         तपाईंले दिएको: बुबा — {me?.claim_father || "—"} · हजुरबुबा — {me?.claim_grand || "—"}
       </p>
