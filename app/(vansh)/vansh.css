@@ -1089,3 +1089,29 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .nrow .nm { margin-top: .75rem; }
 .edb .rad.seg { height: 46px; }
 .edb .nrow .fl { margin-top: .75rem; }
+
+/* ---- breadcrumb ---- */
+.crumbs { margin: 0 0 .7rem; font-size: .85rem; }
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .1rem; margin: 0; padding: 0; list-style: none; }
+.crumbs li { display: inline-flex; align-items: center; min-width: 0; }
+.crumbs li + li::before { content: "›"; margin: 0 .45rem; color: var(--mut); }
+.crumbs a, .crumbs button { background: none; border: 0; padding: .15rem .1rem; font: inherit; color: var(--ink-2); cursor: pointer; text-decoration: none; border-radius: 6px; }
+.crumbs a:hover, .crumbs button:hover { color: var(--mg); text-decoration: underline; }
+.crumbs a:focus-visible, .crumbs button:focus-visible { outline: 2px solid var(--mg); outline-offset: 1px; }
+.crumbs .lin button { padding: .1rem .55rem; border: 1px dashed var(--line-2); border-radius: 999px; font-size: .8rem; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumbs .cur span { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
+@media (max-width: 640px) {
+  .crumbs ol { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .crumbs li { flex: none; }
+  #det[data-snap="0"] { max-height: 34dvh; }
+  #det[data-snap="1"] { max-height: 76dvh; }
+  #det[data-snap="2"] { max-height: calc(100dvh - 16px); }
+  #det { transition: max-height .25s var(--ease); }
+  .sheet-handle { border: 0; padding: 0; cursor: pointer; position: relative; }
+  .sheet-handle::after { content: ""; position: absolute; inset: -14px -28px; }
+}
+.crumbs ol button { min-height: 0; min-width: 0; box-shadow: none; background: none; }
+.crumbs ol .lin button { background: transparent; }
+@media (max-width: 640px) {
+  button.sheet-handle { min-height: 0; height: 4px; width: 40px; box-shadow: none; background: var(--line-2); display: block; }
+}

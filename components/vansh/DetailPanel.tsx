@@ -118,7 +118,20 @@ export default function DetailPanel({
     addEventListener("pointermove", move);
     addEventListener("pointerup", up);
   };
-  // phone: drag the header down to close the bottom sheet
+  // Esc closes the panel (not while a dialog or a text field has focus)
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector("dialog[open]")) return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      unpick();
+    };
+    addEventListener("keydown", k);
+    return () => removeEventListener("keydown", k);
+  }, [unpick]);
+  // phone bottom sheet: three snap heights; swipe up = taller, swipe down = shorter (then close)
+  const [snap, setSnap] = useState<0 | 1 | 2>(1);
   const swipe = useRef<{ y: number; dy: number } | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
     if (innerWidth > 640) return;
@@ -127,9 +140,11 @@ export default function DetailPanel({
   const onTouchMove = (e: React.TouchEvent) => {
     const s = swipe.current;
     if (!s || !asideRef.current) return;
-    s.dy = Math.max(0, e.touches[0].clientY - s.y);
-    asideRef.current.style.transform = `translateY(${s.dy}px)`;
-    asideRef.current.style.transition = "none";
+    s.dy = e.touches[0].clientY - s.y;
+    if (s.dy > 0) {
+      asideRef.current.style.transform = `translateY(${s.dy}px)`;
+      asideRef.current.style.transition = "none";
+    }
   };
   const onTouchEnd = () => {
     const s = swipe.current;
@@ -137,8 +152,11 @@ export default function DetailPanel({
     const el = asideRef.current;
     if (!s || !el) return;
     el.style.transition = "";
-    if (s.dy > 90) unpick();
-    else el.style.transform = "";
+    el.style.transform = "";
+    if (s.dy > 80) {
+      if (snap === 0) unpick();
+      else setSnap((snap - 1) as 0 | 1);
+    } else if (s.dy < -60 && snap < 2) setSnap((snap + 1) as 1 | 2);
   };
   const [busyAi, setBusyAi] = useState(false);
   // root ancestor → … → this person, following the father (the mother when no father is recorded)
@@ -198,9 +216,9 @@ export default function DetailPanel({
 
   return (
     <>
-    <aside id="det" ref={asideRef} style={top ? { top } : undefined}>
+    <aside id="det" ref={asideRef} data-snap={snap} style={top ? { top } : undefined}>
       <div className="pp-fix" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        <div className="sheet-handle" />
+        <button type="button" className="sheet-handle" aria-label="उचाइ बदल्नुहोस्" onClick={() => setSnap(((snap + 1) % 3) as 0 | 1 | 2)} />
         <button className="ghost pp-x" id="dx" aria-label="बन्द" onClick={unpick}>×</button>
         <div className="pp-top">
           <div className="pp-avw">

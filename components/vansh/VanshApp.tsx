@@ -1,5 +1,6 @@
 "use client";
 // App shell: header (tabs, user, theme), the active view, profile panel, dialogs, toast, PWA install button.
+import Crumbs from "./Crumbs";
 import React, { useEffect, useRef, useState } from "react";
 import { DownloadDialog } from "./DownloadMenu";
 import Link from "next/link";
@@ -88,6 +89,18 @@ function Shell() {
   }, []);
 
   const inApp = phase === "app";
+  // Ctrl/⌘+K jumps to the search box of the current view
+  useEffect(() => {
+    if (!inApp) return;
+    const k = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        const el = ["q", "fq", "mq"].map((i) => document.getElementById(i) as HTMLInputElement | null).find((x) => x && x.offsetParent);
+        if (el) { e.preventDefault(); el.focus(); el.select(); }
+      }
+    };
+    addEventListener("keydown", k);
+    return () => removeEventListener("keydown", k);
+  }, [inApp]);
   useDailyEvents(inApp);
   const todayTxt = useTodayLabel();
   const eff: TabKey =
@@ -207,7 +220,7 @@ function Shell() {
         </div>
       )}
       <main id="app" className={inApp && eff === "tree" ? "wide" : ""} style={pushed ? { marginLeft: "calc(var(--det-w, 460px) + 18px)", marginRight: 0 } : undefined}>
-        {phase === "loading" ? null : <>{banner}{body}</>}
+        {phase === "loading" ? null : <>{banner}{inApp && <Crumbs tab={eff} />}{body}</>}
       </main>
       {panelOpen && (
         <div style={pushed ? ({ ["--det-top" as string]: `${hdrH}px` } as React.CSSProperties) : undefined}>
