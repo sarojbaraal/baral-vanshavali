@@ -492,8 +492,8 @@ dialog.ed { width: min(960px, 96vw); padding: 0; overflow: hidden; }
   #det { left: 8px; right: 8px; width: auto; top: auto; bottom: 8px; max-height: 76dvh; border-radius: 22px; animation: rise .3s var(--ease); }
   @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
   dialog { padding: 1.2rem 1.1rem; }
-  dialog.ed { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
-  .edw { grid-template-columns: 1fr; height: 100dvh; }
+  dialog.ed { width: 100vw; max-width: 100vw; height: var(--vvh, 100dvh); max-height: var(--vvh, 100dvh); border-radius: 0; top: var(--vvt, 0px); bottom: auto; margin: 0; }
+  .edw { grid-template-columns: 1fr; height: var(--vvh, 100dvh); }
   .eds { display: none; }
   .edb { padding: 1.2rem 1rem .6rem; }
   .edg { grid-template-columns: 1fr; }
