@@ -246,29 +246,29 @@ export default function DetailPanel({
             </button>
             {isAdm && (
               <button className="ghost" disabled={busyAi} onClick={aiSummary} title="AI सारांश">
-                <i>✨</i>AI
+                <i>📖</i>शारांश
               </button>
             )}
             {ce && (
               <>
                 <button className="ghost" onClick={() => openDialog(<PersonForm action="update" p={p} />, true)} title={isAdm ? "सच्याउने" : "सच्याउने (अनुरोध)"}>
-                  <i>✏️</i>Edit
+                  <i>✏️</i>सच्च्याउने
                 </button>
-                <button className="ghost" onClick={() => openDialog(<AddMenu p={p} />)}><i>➕</i>Add</button>
+                <button className="ghost" onClick={() => openDialog(<AddMenu p={p} />)}><i>➕</i>सदस्य जोड्ने</button>
               </>
             )}
             <div className="pp-moreW" ref={moreRef}>
               <button className={`ghost ${more ? "on" : ""}`} aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((m) => !m)}>
-                <i>⋯</i>More
+                <i>⋯</i>थप बिकल्प
               </button>
               {more && (
                 <div className="pp-menu" role="menu">
                   <button role="menuitem" onClick={goProfile}>🪪 प्रोफाइल</button>
                   {onPrint && <button role="menuitem" onClick={() => { setMore(false); onPrint(p.id); }}>🖨️ प्रिन्ट</button>}
-                  {ce && isAdm && <button role="menuitem" onClick={() => { setMore(false); openDialog(<InviteDialog p={p} />); }}>🔗 निम्तो लिंक</button>}
+                  {ce && isAdm && <button role="menuitem" onClick={() => { setMore(false); openDialog(<InviteDialog p={p} />); }}>🔗 निम्तो पठाउने</button>}
                   {isAdm && (
                     <button role="menuitem" onClick={() => { setMore(false); openDialog(<HideDialog p={p} />); }}>
-                      {p.hidden ? "👁 फेरि देखाउने" : "🙈 लुकाउने"}
+                      {p.hidden ? "👁 फेरि देखाउने" : "🙈 सदस्य लुकाउने"}
                     </button>
                   )}
                   {ce && (
@@ -289,7 +289,7 @@ export default function DetailPanel({
           {p.ai_summary && (
             <Sec id="ai" title="सारांश" col={col} toggle={toggle}>
               <div className="ib w" style={{ ["--c" as string]: "#8B5CF6" }}>
-                <span className="ii"></span>
+                <span className="ii">📖</span>
                 <div>
                   <small>विश्लेषण</small>
                   <p style={{ margin: "0.5rem 0 0", lineHeight: 1.5, fontSize: "0.9rem" }}>{p.ai_summary}</p>

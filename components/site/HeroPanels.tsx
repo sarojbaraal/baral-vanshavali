@@ -48,7 +48,7 @@ export function HeroStory() {
       )}
       {!!me.ai_tags?.length && !!story && <p className="hp-tags">{me.ai_tags.map((t) => <span key={t}>#{t}</span>)}</p>}
       <button type="button" className="hp-act" disabled={busy} onClick={make}>
-        {busy ? "लेख्दै…" : story ? "↻ फेरि लेख्ने" : "✨ मेरो कथा लेख्ने"}
+        {busy ? "लेख्दै…" : story ? "↻ फेरि लेख्ने" : "मेरो कथा लेख्ने"}
       </button>
       {err && <small role="alert" className="hp-err">{err}</small>}
     </figure>

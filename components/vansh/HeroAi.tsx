@@ -193,7 +193,7 @@ export function StoryCard({ person }: { person: VPerson }) {
           </div>
         )}
         <button className="ghost story-go" disabled={busy} onClick={make}>
-          {text ? "↻ फेरि लेख्ने" : "✨ मेरो कथा लेख्ने"}
+          {text ? "↻ फेरि लेख्ने" : "मेरो कथा लेख्ने"}
         </button>
       </div>
     </figure>
