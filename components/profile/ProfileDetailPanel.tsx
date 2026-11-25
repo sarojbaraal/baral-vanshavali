@@ -56,7 +56,7 @@ export default function ProfileDetailPanel() {
         });
       }
     } catch (err) {
-      setErrorMsg((err as Error).message || "AI विश्लेषण उत्पन्न गर्न असफल।");
+      setErrorMsg((err as Error).message || "विश्लेषण गर्न असफल।");
     } finally {
       setIsRegenerating(false);
     }
@@ -122,14 +122,14 @@ export default function ProfileDetailPanel() {
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-indigo-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-300 flex items-center gap-1.5">
-                  ✨ जेमिनी एआई जीवनी सारांश (AI Insights)
+                  जीवनी सारांश (Insights)
                 </span>
                 <button
                   onClick={handleRegenerateAI}
                   disabled={isRegenerating}
                   className="px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-[10px] font-semibold text-indigo-200 transition-all disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                 >
-                  {isRegenerating ? "विश्लेषण हुँदै..." : "✨ Regenerate"}
+                  {isRegenerating ? "विश्लेषण हुँदै..." : "Regenerate"}
                 </button>
               </div>
 
@@ -138,7 +138,7 @@ export default function ProfileDetailPanel() {
               )}
 
               <p className="text-xs text-slate-300 leading-relaxed font-serif">
-                {person.ai_summary || "यस सदस्यको लागि AI सारांश तयार गरिएको छैन। 'Regenerate' मा थिच्नुहोस्।"}
+                {person.ai_summary || "यस सदस्यको लागि सारांश तयार गरिएको छैन। 'Regenerate' मा थिच्नुहोस्।"}
               </p>
 
               {person.ai_tags && person.ai_tags.length > 0 && (

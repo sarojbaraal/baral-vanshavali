@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "हाम्रो वंशावली | Vanshavali Generational Tree",
-  description: "Cultural Nepali Family Tree & Generational Vanshavali with AI & Bikram Sambat lineage tracking.",
+  description: "Cultural Nepali Family Tree & Generational Vanshavali with & Bikram Sambat lineage tracking.",
   manifest: "/manifest.json",
   icons: { icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png" },
 };

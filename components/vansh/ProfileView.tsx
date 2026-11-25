@@ -189,12 +189,12 @@ export default function ProfileView() {
             <>
               <div className="bio">{p.bio.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
               <p className="mut bio-src">
-                {p.bio_ai ? "🤖 रेकर्डमा भएका तथ्यबाट AI ले लेखेको। गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको। AI ले यसलाई कहिल्यै मेटाउँदैन।"}
-                {!p.bio_ai && (p.bio_facts?.length ?? 0) > 0 && ` AI ले यसबाट ${p.bio_facts!.length} तथ्य सिकेको छ र अर्को मस्यौदामा प्रयोग गर्छ।`}
+                {p.bio_ai ? "रेकर्डमा भएका तथ्यबाट लेखिएको हो, गलत भए आफैँ सच्याउनुहोस्।" : "✍ आफैँले लेखेको / सच्याएको। लेखेको जानकारी आफै मेटिदैन।"}
+                {!p.bio_ai && (p.bio_facts?.length ?? 0) > 0 && ` यसबाट ${p.bio_facts!.length} तथ्य सिकिएको छ र अर्को मस्यौदामा प्रयोग गरिनेछ।`}
               </p>
               {p.bio_draft && (
                 <div className="bio-draft">
-                  <b>🤖 AI को नयाँ मस्यौदा</b>
+                  <b>नयाँ मस्यौदा</b>
                   <div className="bio">{p.bio_draft.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}</div>
                   <div className="row">
                     <button disabled={busy} onClick={() => resolveDraft("append")}>आफ्नो जीवनीमा थप्ने</button>
@@ -206,12 +206,12 @@ export default function ProfileView() {
             </>
           ) : (
             <p className="mut">
-              जीवनी अहिलेसम्म लेखिएको छैन। AI ले रेकर्डमा भएको विवरण (जन्म, परिवार, शिक्षा, पेशा) बाट लेखिदिन्छ; नभएको कुरा थप्दैन। विवरण जति पूरा, जीवनी उति राम्रो।
+              जीवनी अहिलेसम्म लेखिएको छैन। रेकर्डमा भएको विवरण (जन्म, परिवार, शिक्षा, पेशा) बाट जीवनी लेखिन्छ।
             </p>
           )}
           {!editing && (
             <div className="row">
-              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? (p.bio_ai ? "🤖 AI बाट फेरि लेख्ने" : "🤖 AI को मस्यौदा बनाउने") : "🤖 AI बाट जीवनी लेख्ने"}</button>
+              <button disabled={busy} onClick={write}>{busy ? "लेख्दै…" : p.bio ? (p.bio_ai ? "फेरि लेख्ने" : "मस्यौदा बनाउने") : "बाट जीवनी लेख्ने"}</button>
               <button className="ghost" onClick={() => { setDraft(p.bio || ""); setEditing(true); }}>{p.bio ? "आफैँ सच्याउने" : "आफैँ लेख्ने"}</button>
             </div>
           )}

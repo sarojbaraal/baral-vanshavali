@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "बराल वंशावली",
     description: "हाम्रो इतिहास, हाम्रो पहिचान",
-    images: [{ url: "/home/hero.jpg", width: 906, height: 780, alt: "AI ले बनाएको कल्पनाचित्र" }],
+    images: [{ url: "/home/hero.jpg", width: 906, height: 780, alt: "काल्पनिकचित्र" }],
     locale: "ne_NP",
     type: "website",
   },

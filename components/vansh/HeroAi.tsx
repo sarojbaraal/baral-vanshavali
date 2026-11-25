@@ -155,13 +155,13 @@ export function StoryCard({ person }: { person: VPerson }) {
   const [busy, setBusy] = useState(false);
   const make = async () => {
     setBusy(true);
-    toast("🤖 AI ले तपाईंको कथा लेख्दैछ...");
+    toast("तपाईंको कथा लेखिदैछ...");
     try {
       await generateSelfStory(db, person.id);
-      toast("✅ तपाईंको कथा तयार भयो!");
+      toast("तपाईंको कथा तयार भयो!");
       await reload();
     } catch (err) {
-      toast("❌ " + (err as Error).message);
+      toast("असफल भयो " + (err as Error).message);
     } finally {
       setBusy(false);
     }

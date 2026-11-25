@@ -1010,7 +1010,7 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .zpill button:hover { background: #f3e2ad; }
 .zpill output { min-width: 40px; text-align: center; font-size: 12.5px; color: #3b2d16; }
 
-/* AI biography draft shown under a self-written biography */
+/* biography draft shown under a self-written biography */
 .bio-draft{margin-top:12px;padding:10px 12px;border:1px dashed #c9a227;border-radius:10px;background:#fffbea}
 .bio-draft .bio{margin:6px 0}
 

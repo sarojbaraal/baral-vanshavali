@@ -1,6 +1,6 @@
 "use client";
 // The two panels a signed-in member sees at the top of the home page, next to their family tree:
-// "तपाईंको कथा" (the AI story) and "आगामी अवसर" (birthdays, anniversaries, shraddha in the coming week).
+// "तपाईंको कथा" (the  story) and "आगामी अवसर" (birthdays, anniversaries, shraddha in the coming week).
 import React, { useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { generateSelfStory } from "@/lib/vansh/aiSummary";
@@ -39,7 +39,7 @@ export function HeroStory() {
     <figure className="hp-story">
       <figcaption>तपाईंको कथा</figcaption>
       <blockquote className={open ? "open" : ""}>
-        {story || "AI ले तपाईंको परिवार र विवरण हेरेर तपाईंकै बारेमा छोटो कथा लेखिदिन्छ। नभएको कुरा थप्दैन।"}
+        {story || "तपाईंको परिवार र विवरण हेरेर तपाईंकै बारेमा छोटो कथा लेखिन्छ। नभएको कुरा थप्दैन।"}
       </blockquote>
       {story.length > 170 && (
         <button type="button" className="hp-more" onClick={() => setOpen(!open)} aria-expanded={open}>

@@ -202,13 +202,13 @@ export default function DetailPanel({
 
   const aiSummary = async () => {
     setBusyAi(true);
-    toast("🤖 AI ले विश्लेषण गर्दैछ...");
+    toast("विश्लेषण गर्दै...");
     try {
       await generateAiSummary(db, g, p);
-      toast("✅ AI सारांश सुरक्षित भयो!");
+      toast("✅ सारांश सुरक्षित भयो!");
       await reload();
     } catch (err) {
-      toast("❌ AI असफल: " + (err as Error).message);
+      toast("पुन: प्रयास गर्नुहोस् " + (err as Error).message);
     } finally {
       setBusyAi(false);
     }
@@ -287,11 +287,11 @@ export default function DetailPanel({
       ) : (
         <>
           {p.ai_summary && (
-            <Sec id="ai" title="✨ AI सारांश" col={col} toggle={toggle}>
+            <Sec id="ai" title="सारांश" col={col} toggle={toggle}>
               <div className="ib w" style={{ ["--c" as string]: "#8B5CF6" }}>
-                <span className="ii">🤖</span>
+                <span className="ii"></span>
                 <div>
-                  <small>AI विश्लेषण</small>
+                  <small>विश्लेषण</small>
                   <p style={{ margin: "0.5rem 0 0", lineHeight: 1.5, fontSize: "0.9rem" }}>{p.ai_summary}</p>
                   {!!p.ai_tags?.length && (
                     <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

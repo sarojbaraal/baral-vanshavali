@@ -83,7 +83,7 @@ h2::after { content: ""; flex: 1; border-top: 1px solid rgba(181,138,66,.6) }
 <h1>${esc(s.name)}</h1>
 ${s.line.length > 1 ? `<div class="line">${esc(s.line.join(" → "))}</div>` : `<div class="line">&nbsp;</div>`}
 <div class="top"><div class="ph">${face}</div><dl>${s.facts.map((f) => `<dt>${esc(f.k)}</dt><dd>${esc(f.v)}</dd>`).join("")}</dl></div>
-${bio ? `<div class="bio"><h2>जीवनी</h2>${bio}${s.bioAi ? "<small>यो जीवनी रेकर्डमा भएका तथ्यबाट AI ले लेखेको हो।</small>" : ""}</div>` : ""}
+${bio ? `<div class="bio"><h2>जीवनी</h2>${bio}${s.bioAi ? "<small>यो जीवनी रेकर्डमा भएका तथ्यबाट लेखेको हो।</small>" : ""}</div>` : ""}
 ${s.mural ? "" : `<div class="chart"><h2>हजुरबुबादेखिको वंशवृक्ष</h2>${s.chart}</div>`}
 <div class="foot">${s.baral ? `<h2>साझा वंश-जानकारी</h2><ul class="common">${common}</ul>` : ""}<div class="stamp"><span>vanshavali.sarojbaral.com.np</span><span>${esc(s.today)}</span></div></div>
 </div></div>
