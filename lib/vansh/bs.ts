@@ -104,7 +104,7 @@ export function neTime(t?: string | null): string {
 /** Date in words with its proof mark: "२०४५ भदौ १२ ✔ प्रमाणित" or "२०४५ भदौ १२ (अनुमानित)". Empty date → "". */
 export function dateProof(date?: string | null, exact?: boolean | null): string {
   const t = neDate(date);
-  return t ? `${t} ${exact ? "✔ प्रमाणित" : "(अनुमानित)"}` : "";
+  return t ? `${t} ${exact ? "✔" : "(अनुमानित)"}` : "";
 }
 
 /** The age to show: years / months / days when the birth date is proven (and the end date too, for the dead), else whole years. */

@@ -67,21 +67,21 @@ export function DownloadDialog() {
     });
   const full = () => bestLayout(g, 420, 297);
   const near = () => {
-    if (!myPosId || !g.byId[myPosId]) throw new Error("तपाईंको स्थान वंशावलीमा तोकिएको छैन — एडमिनले स्थान तोकेपछि यो चल्छ।");
+    if (!myPosId || !g.byId[myPosId]) throw new Error("तपाईंको स्थान वंशावलीमा तोकिएको छैन — एडमिनलाफ आफनो स्थान तोक्न भन्नुहोस्।");
     const ng = nearGraph(g, myPosId);
     return bestLayout(ng, 420, 297);
   };
   return (
     <div className="dlw">
       <h3>⇩ वंशावली डाउनलोड</h3>
-      <p className="mut">{perms.act === "premium" ? "तपाईंको हजुरबुबादेखि तलको शाखा मात्र आउँछ।" : "तपाईंले हेर्न पाउने व्यक्तिहरूको मात्र डाटा आउँछ। बन्द (locked) शाखा समावेश हुँदैन।"}</p>
+      <p className="mut">{perms.act === "premium" ? "तपाईंको हजुरबुबादेखि तलको शाखा मात्र आउँछ।" : "तपाईंले हेर्न पाउने व्यक्तिहरूको मात्र डाटा आउँछ। बन्द (locked) गरेको शाखा समावेश हुँदैन।"}</p>
 
       {perms.act === "general" ? (
-        <p className="card">छाप्ने र डाउनलोड गर्ने सुविधा तपाईंको भूमिकामा उपलब्ध छैन। चाहिए भने एडमिनसँग सम्पर्क गर्नुहोस्।</p>
+        <p className="card">छाप्ने र डाउनलोड गर्ने सुविधा तपाईंको भूमिकामा उपलब्ध छैन। चाहियो भने एडमिनसँग सम्पर्क गर्नुहोस्।</p>
       ) : (
         <>
       {wall && (
-        <Opt icon="🖼" title="भित्ते वंशवृक्ष" info={<><b>{wall.root.name}</b> को पुस्ताको वंशावली ({np(wall.g.people.length)} जना), फोटो सहित, भित्तामा टाँस्न मिल्ने ठूलो चित्र। साना बालबालिकाको फोटो र मिति पनि समावेश हुन्छ। फोन, ठेगाना, टिप्पणी कहिल्यै आउँदैन। छापिएको नाम र मिति तल स्थायी रूपमा छापिन्छ। A2 (४२×५९.४ सेमी) वा A1 मा छाप्न SVG लिनुहोस्; फोन/कम्प्युटरमा हेर्न JPG।</>}>
+        <Opt icon="🏞" title="भित्ते वंशवृक्ष" info={<><b>{wall.root.name}</b> को पुस्ताको वंशावली ({np(wall.g.people.length)} जना), फोटो, नाम र मिति सहित, भित्तामा टाँस्न मिल्ने ठूलो चित्र। ठुलो साईजमा छाप्न SVG र फोन/कम्प्युटरमा हेर्न JPG छान्नुहोस्।</>}>
           <button disabled={!!busy} onClick={() => prep("wall-jpg", async () => {
             const l = bestLayout(wall.g, 594, 420);
             const ph = await loadPhotos(l.cards.map((c) => c.p), can);
@@ -97,10 +97,10 @@ export function DownloadDialog() {
             const st = await mkStamp(`wallsvg|${wall.root.id}|${l.cards.length}`);
             const blob = svgBlob(posterSvg(l, can, nm, ph, { title: [`${wall.root.name} को `, "वंशवृक्ष"], stamp: st }));
             return { blob, fileName: `vanshabriksha-${wall.root.name}-${stamp()}.svg`, images: [{ src: URL.createObjectURL(blob) }], note: `${np(l.cards.length)} जना · हस्ताक्षर ID ${st.id}` };
-          })}>{busy === "wall-svg" ? "बन्दैछ…" : "SVG (छाप्न)"}</button>
+          })}>{busy === "wall-svg" ? "बन्दैछ…" : "SVG हेर्ने / डाउनलोड"}</button>
         </Opt>
       )}
-      <Opt icon="📷" title="फोटो (JPG)" info={<>चार्ट ठूलो हुँदा फोटोको गुणस्तर स्पष्ट नहुने भएकाले यसमा तपाईंको स्थानभन्दा ७ पुस्ता माथि (सिधा पुर्खा) र ७ पुस्ता तल (सन्तान), पति/पत्नीसहित आउँछ। प्रोफाइल फोटो भएकाको फोटो नै देखिन्छ। फोन/कम्प्युटरको ग्यालरीमा हेर्न मिल्छ।</>}>
+      <Opt icon="📷" title="फोटो (JPG)" info={<>चार्ट ठूलो हुँदा फोटोको गुणस्तर स्पष्ट नहुने भएकाले यसमा तपाईंको स्थानभन्दा ७ पुस्ता तल र माथि छापिन्छ। फोन र कम्प्युटरमा हेर्न उपयुक्त हुन्छ।</>}>
         <button disabled={!!busy} onClick={() => prep("jpg", async () => {
           const l = near();
           const ph = await loadPhotos(l.cards.map((c) => c.p), can);
@@ -112,7 +112,7 @@ export function DownloadDialog() {
         })}>{busy === "jpg" ? "बन्दैछ…" : "फोटो हेर्ने / डाउनलोड"}</button>
       </Opt>
 
-      <Opt icon="🖼" title="SVG चित्र" info={<>उच्च गुणस्तरको चित्र, जतिसुकै ठूलो गर्दा पनि स्पष्ट रहन्छ। प्रोफाइल फोटो भएकाको फोटो नै देखिन्छ (नभए नामको पहिलो अक्षर)। Chrome/Safari वा कुनै SVG viewer एपमा खोल्नुहोस्। तपाईंले हेर्न पाउने सबै व्यक्ति समावेश हुन्छन्।</>}>
+      <Opt icon="🏞" title="SVG चित्र" info={<>उच्च गुणस्तरको चित्र, जतिसुकै ठूलो गर्दा पनि स्पष्ट रहन्छ। डाउनलोड भएको फाईल हेर्न लाई Chrome/Safari वा कुनै SVG viewer एपमा खोल्नुहोस्। यसमा तपाईंले हेर्न पाउने सबै व्यक्ति समावेश हुन्छन्।</>}>
         <button disabled={!!busy} onClick={() => prep("svg", async () => {
           const l = full();
           const ph = await loadPhotos(l.cards.map((c) => c.p), can);
@@ -122,20 +122,21 @@ export function DownloadDialog() {
         })}>{busy === "svg" ? "बन्दैछ…" : "SVG हेर्ने / डाउनलोड"}</button>
       </Opt>
 
-      <Opt icon="📄" title="PDF" info={<>तपाईंले हेर्न पाउने सबै व्यक्ति पहिला ठाडो झरना ढाँचामा, त्यसपछि चार्ट। चार्ट ठूलो भए पढ्न मिल्ने साइजमै राखेर पूरा चार्टको नक्सा-पृष्ठ (रातो ग्रिड) र ग्रिडअनुसारका खण्ड (A1, A2…) छापिन्छ; हरेक खण्डमा &quot;→ A2&quot; जस्ता निरन्तरताका चिन्ह हुन्छन् — खण्ड जोडेर पूरा पोस्टर बनाउन सकिन्छ।</>}>
-        <select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} aria-label="कागज साइज">
-          <option value="a4">A4</option>
-          <option value="a3">A3</option>
-          <option value="a2">A2</option>
-        </select>
+      <Opt icon="📄" title="PDF" info={<>तपाईंले हेर्न पाउने सबै व्यक्ति पहिला ठाडो झरना ढाँचामा र त्यसपछि चार्टमा छापिन्छन् । यसबाट किताब वंशावली किताब बनाउन सकिन्छ। (जुन पेपरमा प्रिन्ट गर्ने हो, त्यहि अनुसारको पेपर साईज छान्नुहोस्)</>}>
+
         <button disabled={!!busy} onClick={() => prep("pdf", async () => {
           const st = await mkStamp(`pdf|${g.people.length}|${paper}`);
           const out = await allPrint(g, { can, nm }, paper, st, (ps) => loadPhotos(ps, can));
           return { blob: out.blob, fileName: `baral-banshabrikshya-${paper.toUpperCase()}.pdf`, images: out.pages.map((x) => ({ src: x.thumb, label: x.label })), note: `${np(out.cascadePages)} झरना पृष्ठ + ${np(out.chartPages)} चार्ट पृष्ठ · हस्ताक्षर ID ${st.id}` };
         })}>{busy === "pdf" ? "बन्दैछ…" : "PDF हेर्ने / डाउनलोड"}</button>
+        <select value={paper} onChange={(e) => setPaper(e.target.value as Paper)} aria-label="कागज साइज">
+          <option value="a4">Size A4</option>
+          <option value="a3">Size A3</option>
+          <option value="a2">Size A2</option>
+        </select>
       </Opt>
 
-      <Opt icon="📊" title="Excel (.xlsx)" info={<>स्तम्भ: नाम, हजुरबुबा, बुबा, आमा, जन्म मिति, जन्म स्थान, ठेगाना, शिक्षा, पेशा, वैवाहिक अवस्था, पति/पत्नी, सम्पर्क नम्बर, email, facebook link, टिप्पणी। {isStaff ? "तपाईं एडमिन/मोडरेटर हुनुहुन्छ — सबैको फोन/इमेल आउँछ।" : "फोन/इमेल तपाईंको आफ्नो पङ्क्तिमा मात्र आउँछ।"} (वैवाहिक अवस्था पति/पत्नीको विवरणबाट निकालिन्छ।)</>}>
+      <Opt icon="📊" title="Excel (.xlsx)" info={<>डेटाबेस बाट सबै जानकारीहरु Excel मा डाउनलोड हुन्छ। {isStaff ? "तपाईं एडमिन/मोडरेटर हुनुहुन्छ — सबैको फोन/इमेल आउँछ।" : "फोन/इमेल तपाईंको आफ्नो पङ्क्तिमा मात्र आउँछ।"} (वैवाहिक अवस्था पति/पत्नीको विवरणबाट निकालिन्छ।)</>}>
         <button disabled={!!busy} onClick={() => prep("xlsx", async () => {
           const st = await mkStamp(`xlsx|${g.people.length}`);
           const x = await mainXlsxBlob(g, { can, isStaff, myPosId }, st);
@@ -145,7 +146,7 @@ export function DownloadDialog() {
 
         </>
       )}
-      <Opt icon="🔁" title="आयात / निर्यात" info={isAdm ? "Excel टेम्प्लेट डाउनलोड, भरेर अपलोड (नयाँ व्यक्ति थप्न), तथा पूर्ण ब्याकअप।" : "Excel टेम्प्लेट डाउनलोड गरी नयाँ व्यक्ति भरेर अपलोड गर्ने — एडमिनको स्वीकृतिका लागि अनुरोध बन्छ।"}>
+      <Opt icon="🔁" title="आयात / निर्यात" info={isAdm ? "Excel टेम्प्लेट डाउनलोड, भरेर अपलोड (नयाँ व्यक्ति थप्न), तथा पूर्ण ब्याकअपको लागि।" : "Excel टेम्प्लेट डाउनलोड गरी नयाँ व्यक्ति भरेर अपलोड गर्ने — एडमिनको स्वीकृतिका लागि अनुरोध बन्छ।"}>
         <button className="ghost" onClick={() => openDialog(<ImportExportDialog />)}>विन्डो खोल्ने</button>
       </Opt>
       <div className="row" style={{ marginTop: ".6rem" }}>
@@ -291,7 +292,7 @@ export function ImportExportDialog() {
           <div className="dlo-h"><b>३. एडमिन: पूर्ण ब्याकअप / पुरानो ढाँचाको आयात</b></div>
           <p className="mut">आयात गर्नुअघि JSON ब्याकअप लिनुहोस्। फाइलमा नभएका व्यक्ति हटाइँदैनन्; पूर्वावलोकनमा फरक देखिन्छ।</p>
           <div className="row">
-            <button className="ghost" onClick={() => exportXLSX(gPrint).catch((e) => alert(e.message))}>📊 पूर्ण Excel</button>
+            <button className="ghost" onClick={() => exportXLSX(gPrint).catch((e) => alert(e.message))}>𓊂 पूर्ण Excel</button>
             <button className="ghost" onClick={() => exportCSV(gPrint)}>📄 CSV</button>
             <button className="ghost" onClick={() => exportJSON(people)} title="एडमिनको पूर्ण ब्याकअप — लुकाइएका सदस्य पनि समावेश">💾 JSON ब्याकअप</button>
             <button className="ghost" onClick={() => fileRef.current?.click()}>📥 पुरानो फाइल अपलोड</button>
@@ -299,7 +300,7 @@ export function ImportExportDialog() {
           </div>
         </div>
       )}
-      <div className="row"><button className="ghost" onClick={closeDialog}>बन्द</button></div>
+      <div className="row"><button className="ghost" onClick={closeDialog}>बन्द गर्नुहोस्</button></div>
     </div>
   );
 }

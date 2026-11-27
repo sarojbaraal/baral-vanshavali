@@ -346,7 +346,7 @@ export function PersonForm({ action, p = null, parent = null, pre = null }: Pers
           {pickMenu && (
             <div className="eds-pm" role="menu">
               <button type="button" role="menuitem" className="ghost" onClick={() => { setPickMenu(false); cropRef.current?.openCamera(); }}>📷 क्यामेरा बाट</button>
-              <button type="button" role="menuitem" className="ghost" onClick={() => { setPickMenu(false); cropRef.current?.openGallery(); }}>🖼 ग्यालरी बाट</button>
+              <button type="button" role="menuitem" className="ghost" onClick={() => { setPickMenu(false); cropRef.current?.openGallery(); }}>🌄 ग्यालरी बाट</button>
             </div>
           )}
         </div>

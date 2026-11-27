@@ -247,7 +247,7 @@ export function AvatarsDialog() {
 
   return (
     <>
-      <h3>🖼 डिफल्ट अवतार</h3>
+      <h3>🎴 डिफल्ट अवतार</h3>
       <p className="mut">फोटो नभएका सबै सदस्यमा यही देखिन्छ। फाइल नराखे अहिलेको मूल चित्र नै चल्छ।</p>
       <div className="avset">
         {(["M", "F"] as const).map((g) => (

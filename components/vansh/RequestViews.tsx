@@ -306,15 +306,15 @@ export function AdminView() {
   const hiddenN = adm ? g.people.filter((p) => p.hidden).length : 0;
   const revN = adm ? reviewCount(reviewIssues(g.people)) : 0;
   const sections: Record<Sec, [string, number]> = {
-    new: ["🆕 नयाँ सदस्य", pend.length],
+    new: ["🙋‍♂️ नयाँ सदस्य", pend.length],
     mem: ["🛡 सदस्य भूमिका", mem.length],
-    req: ["📨 परिवर्तन अनुरोध", groups.length],
+    req: ["📝 परिवर्तन अनुरोध", groups.length],
     rev: ["🧭 सम्बन्ध समीक्षा", revN],
     hist: ["🕘 अनुरोध इतिहास", hist.length],
     view: ["👁 हेर्ने अनुमति", viewN],
     hid: ["🙈 लुकाइएका सदस्य", hiddenN],
     as: ["🔎 पूर्वावलोकन", 0],
-    msg: ["✉ सन्देश", msgs.filter((m) => m.status === "new").length],
+    msg: ["📩 सन्देश", msgs.filter((m) => m.status === "new").length],
   };
   const setMsg = async (id: string, st: SiteMsg["status"]) => {
     const { error } = await db.rpc("set_message_status", { p_id: id, p_status: st });
@@ -451,7 +451,7 @@ export function AdminView() {
         {adm && (
           <div className="row" style={{ margin: "0 0 1rem" }}>
             <button onClick={() => openDialog(<AcctDialog onDone={fetchAll} />)}>➕ खाता बनाउने</button>
-            <button className="ghost" onClick={() => openDialog(<AvatarsDialog />)}>🖼 डिफल्ट अवतार</button>
+            <button className="ghost" onClick={() => openDialog(<AvatarsDialog />)}>🏞️ डिफल्ट अवतार</button>
           </div>
         )}
         {empty || (cur === "hist" && !hist.length) ? <div className="card">यहाँ अहिले केही छैन।</div> : body}
