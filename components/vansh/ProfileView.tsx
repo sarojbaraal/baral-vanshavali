@@ -238,7 +238,7 @@ export default function ProfileView({ pid }: { pid?: string }) {
             {facts.map((f) => (
               <React.Fragment key={f.k}>
                 <dt>{f.k}</dt>
-                <dd>{f.v}</dd>
+                <dd className={f.locked ? "lockd" : undefined} title={f.locked ? "यो विवरण मालिकले वा साइटको नियमले लुकाएको छ" : undefined}>{f.v}</dd>
               </React.Fragment>
             ))}
           </dl>

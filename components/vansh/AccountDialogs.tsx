@@ -1,23 +1,26 @@
 "use client";
 // Dialogs behind the avatar menu: field privacy ("गोपनीयता सेटिङ") and "समस्या रिपोर्ट".
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { VPerson } from "@/lib/vansh/types";
 import { useVansh } from "./VanshContext";
 import { mailMessage } from "@/lib/vansh/notify";
+import { np } from "@/lib/vansh/text";
+import { canSee, DEFAULT, type FieldKey, type Level, type Viewer } from "@/lib/vansh/privacy";
 
-type Level = "all" | "near" | "me";
-const FIELDS: { k: "phone" | "birth_bs" | "address" | "photo_url"; l: string }[] = [
-  { k: "phone", l: "फोन नम्बर" },
-  { k: "birth_bs", l: "जन्ममिति" },
-  { k: "address", l: "ठेगाना" },
-  { k: "photo_url", l: "फोटो" },
+type Aud = { family?: number; near?: number; members?: number };
+const GROUPS: { t: string; f: { k: FieldKey; l: string }[] }[] = [
+  { t: "सम्पर्क", f: [{ k: "phone", l: "फोन नम्बर" }, { k: "address", l: "ठेगाना" }, { k: "facebook", l: "Facebook" }] },
+  { t: "व्यक्तिगत", f: [{ k: "birth_bs", l: "जन्ममिति र समय" }, { k: "birth_place", l: "जन्मस्थान" }, { k: "photo_url", l: "फोटो" }] },
+  { t: "विवाह", f: [{ k: "marriage_bs", l: "विवाह मिति" }, { k: "divorce_bs", l: "सम्बन्ध विच्छेद मिति" }] },
+  { t: "शिक्षा र पेशा", f: [{ k: "education", l: "शिक्षा" }, { k: "occupation", l: "पेशा" }, { k: "organization", l: "कार्यरत संस्था" }] },
 ];
-const LEVELS: [Level, string][] = [
-  ["all", "भूमिकाअनुसार सबै सदस्य"],
-  ["near", "नजिकका नाता र शाखा मात्र"],
-  ["me", "म र एडमिन मात्र"],
-];
-
+/** Who the preview pretends to be. Same rules as get_people, so the preview never promises more than the server gives. */
+const VIEWERS = [
+  { k: "family", l: "परिवारको साधारण सदस्य" },
+  { k: "branch", l: "शाखाको साधारण सदस्य" },
+  { k: "far", l: "टाढाको साधारण सदस्य" },
+  { k: "trusted", l: "विश्वसनीय सदस्य (premium/moderator)" },
+] as const;
 export function PrivacyDialog() {
   const { db, me, g, closeDialog, toast, reload } = useVansh();
   const p: VPerson | undefined = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
@@ -25,6 +28,15 @@ export function PrivacyDialog() {
   const [rem, setRem] = useState(!!me?.email_reminders);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [aud, setAud] = useState<Aud>({});
+  const [viewer, setViewer] = useState<Viewer>("far");
+  useEffect(() => {
+    let alive = true;
+    db.rpc("privacy_audience").then(({ data }: { data: Aud | null }) => alive && data && setAud(data));
+    return () => {
+      alive = false;
+    };
+  }, [db]);
   const save = async () => {
     setBusy(true);
     const { error } = await db.rpc("set_my_privacy", { p_privacy: v });
@@ -43,25 +55,61 @@ export function PrivacyDialog() {
         <div className="row"><button className="ghost" onClick={closeDialog}>बन्द</button></div>
       </>
     );
+  const n = (x?: number) => (typeof x === "number" ? ` · ${np(String(x))} जना` : "");
+  const levels: [Level, string][] = [
+    ["all", "सबै सदस्य"],
+    ["near", `शाखा र परिवार${n(aud.near)}`],
+    ["family", `परिवार मात्र${n(aud.family)}`],
+    ["me", "म र एडमिन मात्र"],
+  ];
+  const eff = (k: FieldKey): Level => v[k] || DEFAULT[k] || "all";
+  const set = (k: FieldKey, l: Level) => setV((o) => ({ ...o, [k]: l }));
   return (
     <>
       <h3>🔒 गोपनीयता सेटिङ</h3>
       <p className="mut">
-        तपाईंको विवरण कसले देख्न सक्छ भन्ने छान्नुहोस्। एडमिन र तपाईं आफूले सधैँ देख्नुहुन्छ। नाम र नाता भने वंशवृक्षमै रहन्छन्।
+        वंशावलीको उद्देश्य जानकारी बाँड्नु हो, त्यसैले धेरै विवरण पूर्वनिर्धारित रूपमा खुला छन्। जुन विवरण कसले देख्छ भन्ने तपाईं छान्न सक्नुहुन्छ। एडमिन र तपाईं आफूले सधैँ देख्नुहुन्छ। नाम र नाता वंशवृक्षमै रहन्छन्।
       </p>
-      {FIELDS.map((f) => (
-        <label key={f.k}>
-          {f.l}
-          <select value={v[f.k] || "all"} onChange={(e) => setV({ ...v, [f.k]: e.target.value as Level })}>
-            {LEVELS.map(([k, l]) => (
-              <option key={k} value={k}>{l}</option>
-            ))}
-          </select>
-        </label>
+      <p className="mut" style={{ fontSize: ".85rem" }}>
+        &ldquo;शाखा&rdquo; भनेको तपाईंका बुबा र आमा दुवैतर्फको हजुरबुबाबाट तलका सबै सन्तान र उनीहरूका जीवनसाथी हुन्।
+      </p>
+      {GROUPS.map((gr) => (
+        <fieldset key={gr.t} className="pvg">
+          <legend>{gr.t}</legend>
+          {gr.f.map((f) => (
+            <label key={f.k}>
+              {f.l}
+              <select value={eff(f.k)} onChange={(e) => set(f.k, e.target.value as Level)}>
+                {levels.map(([k, l]) => (
+                  <option key={k} value={k}>{l}{!v[f.k] && DEFAULT[f.k] === k ? " (पूर्वनिर्धारित)" : ""}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </fieldset>
       ))}
       <p className="mut" style={{ fontSize: ".85rem" }}>
-        &ldquo;भूमिकाअनुसार सबै सदस्य&rdquo; भनेको साइटको सामान्य नियम हो: साधारण सदस्यले अरूको फोन/ठेगाना देख्दैनन्, र १८ वर्षमुनिकाको जन्ममिति/फोटो नजिकका नातामा मात्र सीमित हुन्छ।
+        फोन र ठेगाना नछान्दा साधारण सदस्यले देख्दैनन्; छानेपछि छानिएको घेराभित्रका सबै सदस्यले देख्छन्। १८ वर्षमुनिकाको जन्ममिति/फोटो नजिकका नातामा मात्र सीमित रहन्छ।
       </p>
+      <div className="pvv" aria-live="polite">
+        <b>👁 अरूले कसरी देख्छन्</b>
+        <div className="pvseg" role="tablist">
+          {VIEWERS.map((x) => (
+            <button key={x.k} type="button" role="tab" aria-selected={viewer === x.k} className={viewer === x.k ? "on" : ""} onClick={() => setViewer(x.k)}>{x.l}</button>
+          ))}
+        </div>
+        <ul>
+          {GROUPS.flatMap((gr) => gr.f).map((f) => {
+            const ok = canSee(f.k, v[f.k], viewer);
+            return (
+              <li key={f.k} className={ok ? "" : "lockd"}>
+                <span>{f.l}</span>
+                <em>{ok ? "देखिन्छ" : "🔒 गोप्य"}</em>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
       <label className="chk">
         <input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />
         <span>📧 जन्मदिन/वर्षगाँठ अनुस्मारक {me?.email ? `(${me.email})` : ""} मा पठाउनुहोस्<small className="mut" style={{ display: "block" }}>तपाईं, जीवनसाथी, बुबाआमा, दाजुभाइ-दिदीबहिनी र सन्तानका मात्र; बिहान ७ बजे, आजको र भोलिको।</small></span>

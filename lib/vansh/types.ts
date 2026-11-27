@@ -61,8 +61,10 @@ export interface VPerson {
   bio_draft?: string | null;
   /** facts the AI learned from the self-written bio, reused in later drafts */
   bio_facts?: string[] | null;
-  /** who may see each field: absent = all members; "near" = close relatives; "me" = only the person and admins */
-  privacy?: Record<string, "near" | "me"> | null;
+  /** who may see each field (owner only): "all" | "near" (branch) | "family" (immediate) | "me" (person + admins); absent = site default */
+  privacy?: Record<string, "all" | "near" | "family" | "me"> | null;
+  /** fields that exist but are hidden from the viewer ("🔒 गोप्य"); filled by get_people for other people's cards */
+  locked_fields?: string[] | null;
   ai_summary?: string | null;
   /** Second-person "तपाईंको कथा" for the person's own home screen. */
   ai_summary_self?: string | null;

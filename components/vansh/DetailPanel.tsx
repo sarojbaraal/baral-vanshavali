@@ -13,8 +13,18 @@ import { useVansh } from "./VanshContext";
 import { Avatar, KidCount } from "./ui";
 import { AddMenu, DeleteDialog, HideDialog, InviteDialog, PersonForm } from "./PersonDialogs";
 
-function Box({ c, ic, l, children, mg }: { c: string; ic: string; l: string; children?: React.ReactNode; mg?: boolean }) {
-  if (!children) return null;
+function Box({ c, ic, l, children, mg, lock }: { c: string; ic: string; l: string; children?: React.ReactNode; mg?: boolean; lock?: boolean }) {
+  if (!children && !lock) return null;
+  if (!children)
+    return (
+      <div className={`ib w lockd${mg ? " mgl" : ""}`} style={{ ["--c" as string]: mg ? "var(--mg)" : c }} title="यो विवरण मालिकले वा साइटको नियमले लुकाएको छ">
+        <span className="ii">🔒</span>
+        <div>
+          <small>{l}</small>
+          <b>गोप्य</b>
+        </div>
+      </div>
+    );
   return (
     <div className={`ib w${mg ? " mgl" : ""}`} style={{ ["--c" as string]: mg ? "var(--mg)" : c }}>
       <span className="ii">{ic}</span>
@@ -195,6 +205,7 @@ export default function DetailPanel({
   };
 
   // the full profile page of this person (the same page they see for themselves, minus what the server hides from this viewer)
+  const lk = (k: string) => !!p.locked_fields?.includes(k);
   const goProfile = () => {
     setMore(false);
     openProfile(p.id);
@@ -355,28 +366,28 @@ export default function DetailPanel({
           )}
           </Sec>
           <Sec id="pi" title="व्यक्तिगत विवरण" col={col} toggle={toggle}>
-          <Box c="#F59E0B" ic="🎂" l="जन्म मिति">{dateProof(p.birth_bs, p.birth_exact)}</Box>
+          <Box c="#F59E0B" ic="🎂" l="जन्म मिति" lock={lk("birth_bs")}>{dateProof(p.birth_bs, p.birth_exact)}</Box>
           <Box c="#F59E0B" ic="🕰" l="जन्म समय" mg>{neTime(p.birth_time)}</Box>
           {!p.is_living && <Box c="#6B7280" ic="🕊" l="मृत्यु मिति">{dateProof(p.death_bs, p.death_exact)}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🌙" l="मृत्यु तिथि" mg>{p.death_tithi}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🩺" l="मृत्युको कारण" mg>{p.death_reason}</Box>}
           {!p.is_living && <Box c="#6B7280" ic="🪦" l="मृत्यु स्थान" mg>{p.death_place}</Box>}
-          <Box c="" ic="🎓" l="शिक्षा" mg>{p.education}</Box>
-          <Box c="" ic="💼" l="पेशा" mg>{p.occupation}</Box>
-          <Box c="" ic="🏢" l="कार्यरत संस्था" mg>{p.organization}</Box>
+          <Box c="" ic="🎓" l="शिक्षा" mg lock={lk("education")}>{p.education}</Box>
+          <Box c="" ic="💼" l="पेशा" mg lock={lk("occupation")}>{p.occupation}</Box>
+          <Box c="" ic="🏢" l="कार्यरत संस्था" mg lock={lk("organization")}>{p.organization}</Box>
           <Box c="" ic="👫" l="बैवाहिक स्थिति" mg>{p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : null}</Box>
-          <Box c="" ic="💒" l="विवाह मिति" mg>{dateProof(p.marriage_bs, p.marriage_exact)}</Box>
-          {p.marital_status === "divorced" && <Box c="" ic="💔" l="सम्बन्ध विच्छेद मिति" mg>{dateProof(p.divorce_bs, p.divorce_exact)}</Box>}
+          <Box c="" ic="💒" l="विवाह मिति" mg lock={lk("marriage_bs")}>{dateProof(p.marriage_bs, p.marriage_exact)}</Box>
+          {p.marital_status === "divorced" && <Box c="" ic="💔" l="सम्बन्ध विच्छेद मिति" mg lock={lk("divorce_bs")}>{dateProof(p.divorce_bs, p.divorce_exact)}</Box>}
           {p.gender === "F" && (
             <>
               <Box c="#EC4899" ic="👰" l="विवाहअघिको थर">{p.maiden_name}</Box>
               <Box c="#EF4444" ic="💍" l="विवाहपछिको थर">{p.married_name}</Box>
             </>
           )}
-          <Box c="#F59E0B" ic="📌" l="जन्म स्थान">{p.birth_place}</Box>
-          <Box c="#14B8A6" ic="📞" l="फोन">{p.phone}</Box>
+          <Box c="#F59E0B" ic="📌" l="जन्म स्थान" lock={lk("birth_place")}>{p.birth_place}</Box>
+          <Box c="#14B8A6" ic="📞" l="फोन" lock={lk("phone")}>{p.phone}</Box>
           {(isStaff || p.id === me?.position_person_id) && <Box c="#3B82F6" ic="✉️" l="इमेल (लगइन)">{p.email}</Box>}
-          <Box c="#8B5CF6" ic="📍" l="ठेगाना">{g.addrOf(p)}</Box>
+          <Box c="#8B5CF6" ic="📍" l="ठेगाना" lock={lk("address") && p.is_living !== false}>{g.addrOf(p)}</Box>
           {fbOk(p.facebook) && (
             <Box c="#1877F2" ic="🔗" l="Facebook">
               <a href={p.facebook!} target="_blank" rel="noopener noreferrer">प्रोफाइल खोल्नुहोस्</a>

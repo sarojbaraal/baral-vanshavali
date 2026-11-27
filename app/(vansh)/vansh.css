@@ -1126,3 +1126,22 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
   .edf { padding: .45rem 1rem calc(.45rem + env(safe-area-inset-bottom)); box-shadow: none; }
   .edf button { min-height: 40px; padding-top: .35rem; padding-bottom: .35rem; }
 }
+
+/* hidden by the owner / site rules ("🔒 गोप्य") */
+.facts dd.lockd { color: var(--mut, #6b7280); font-style: italic; }
+.ib.lockd { opacity: .72; }
+.ib.lockd b { font-style: italic; font-weight: 600; }
+
+/* privacy settings dialog */
+.pvg { border: 1px solid var(--bd, #e5e7eb); border-radius: 10px; margin: .6rem 0; padding: .4rem .8rem .7rem; }
+.pvg legend { font-weight: 700; padding: 0 .35rem; color: var(--mg); }
+.pvv { border: 1px dashed var(--bd, #d1d5db); border-radius: 10px; padding: .6rem .8rem; margin: .8rem 0; }
+.pvv .pvseg { display: flex; flex-wrap: wrap; gap: .35rem; margin: .5rem 0; }
+.pvv .pvseg button { padding: .3rem .6rem; border-radius: 999px; border: 1px solid var(--bd, #d1d5db); background: transparent; color: inherit; box-shadow: none; font: inherit; font-size: .85rem; cursor: pointer; }
+.pvv .pvseg button.on { background: var(--mg); color: #fff; border-color: var(--mg); }
+.pvv .pvseg button:not(.on):hover { background: rgba(0,0,0,.04); }
+.pvv ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }
+.pvv li { display: flex; justify-content: space-between; gap: 1rem; }
+.pvv li em { font-style: normal; font-weight: 600; }
+.pvv li.lockd { color: var(--mut, #6b7280); }
+.pvv li.lockd em { font-style: italic; }
