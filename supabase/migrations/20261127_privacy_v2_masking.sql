@@ -69,7 +69,14 @@ language plpgsql stable security definer set search_path = public as $$
 declare a uuid[] := public.anc_ids(own);
 begin
   if own is null then return '{}'; end if;
-  return public.imm_ids(own) || array(select p.id from people p where public.near_roots(p.id) && a);
+  return public.imm_ids(own) || array(
+    select p.id from people p
+      left join people f on f.id = p.father_id left join people ff on ff.id = f.father_id
+      left join people m on m.id = p.mother_id left join people mf on mf.id = m.father_id left join people mff on mff.id = mf.father_id
+    where coalesce(ff.id, f.id) = any(a) or coalesce(mff.id, mf.id) = any(a)
+       or exists (select 1 from unnest(array[p.spouse_id] || coalesce(p.more_spouse_ids, '{}')) s
+                  join people sp on sp.id = s left join people sf on sf.id = sp.father_id left join people sff on sff.id = sf.father_id
+                  where coalesce(sff.id, sf.id) = any(a)));
 end $$;
 
 -- keys of one person's row that this viewer must not see
