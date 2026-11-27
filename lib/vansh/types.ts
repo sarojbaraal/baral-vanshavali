@@ -2,7 +2,7 @@
 
 export type Gender = "M" | "F" | "O" | "" | null;
 export type Role = "admin" | "moderator" | "premium" | "general";
-export type TabKey = "me" | "fam" | "tree" | "mem" | "mine" | "admin" | "ov";
+export type TabKey = "me" | "fam" | "tree" | "mem" | "mine" | "admin" | "ov" | "pf";
 
 /** unknown is the default; married / divorced show the spouse block in the edit form. */
 export type MaritalStatus = "married" | "unmarried" | "divorced" | "unknown";

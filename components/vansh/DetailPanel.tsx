@@ -63,7 +63,7 @@ export default function DetailPanel({
   onGo?: (id: string) => void;
   onPrint?: (id: string) => void;
 }) {
-  const { db, g, me, sel, perms, pick, unpick, openDialog, toast, reload, setTab } = useVansh();
+  const { db, g, me, sel, perms, pick, unpick, openDialog, toast, reload, setTab, openProfile } = useVansh();
   const [more, setMore] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -194,10 +194,10 @@ export default function DetailPanel({
     }
   };
 
+  // the full profile page of this person (the same page they see for themselves, minus what the server hides from this viewer)
   const goProfile = () => {
     setMore(false);
-    if (col.pi) toggle("pi");
-    setTimeout(() => document.getElementById("pi")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    openProfile(p.id);
   };
 
   const aiSummary = async () => {
@@ -241,6 +241,9 @@ export default function DetailPanel({
         </div>
         {!lim && (
           <div className="pp-act">
+            <button className="ghost on" onClick={goProfile} title="पूरा प्रोफाइल पेज">
+              <i>🪪</i>प्रोफाइल
+            </button>
             <button className="ghost" onClick={showInChart} title="चार्टमा हेर्नुहोस्">
               <i>🌳</i>चार्ट
             </button>
@@ -263,7 +266,6 @@ export default function DetailPanel({
               </button>
               {more && (
                 <div className="pp-menu" role="menu">
-                  <button role="menuitem" onClick={goProfile}>🪪 प्रोफाइल</button>
                   {onPrint && <button role="menuitem" onClick={() => { setMore(false); onPrint(p.id); }}>🖨️ प्रिन्ट</button>}
                   {ce && isAdm && <button role="menuitem" onClick={() => { setMore(false); openDialog(<InviteDialog p={p} />); }}>🔗 निम्तो पठाउने</button>}
                   {isAdm && (
