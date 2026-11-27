@@ -7,6 +7,8 @@ import { maritalLabel } from "./text";
 export interface Fact {
   k: string;
   v: string;
+  /** for a locked row: the database field it stands for (so the viewer can ask for it) */
+  key?: string;
   /** hidden by the owner / site rules: v is the "🔒 गोप्य" placeholder */
   locked?: boolean;
 }
@@ -22,7 +24,7 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
   const L = new Set(p.locked_fields || []);
   // a hidden field keeps its row, so the viewer sees that something exists but is private
   const lock = (key: string, label: string) => {
-    if (L.has(key)) out.push({ k: label, v: LOCKED_TEXT, locked: true });
+    if (L.has(key)) out.push({ k: label, v: LOCKED_TEXT, locked: true, key });
   };
   const age = ageLabel(p);
   add("जन्म मिति (वि.सं.)", dateProof(p.birth_bs, p.birth_exact) + (age && p.is_living !== false ? ` · उमेर ${age}` : ""));

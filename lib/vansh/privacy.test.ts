@@ -15,3 +15,15 @@ describe("canSee (mirrors get_people)", () => {
   });
   it("unset non-contact fields are open", () => expect(who("birth_bs", undefined)).toEqual(ALL));
 });
+
+import { grantLabel, fieldLabel } from "./privacy";
+describe("grant wording", () => {
+  const now = Date.UTC(2026, 10, 28, 0, 0, 0);
+  it("always when there is no expiry", () => expect(grantLabel(null, now)).toBe("सधैं"));
+  it("hours left for a once-grant", () => expect(grantLabel(new Date(now + 5 * 3600e3 - 60e3).toISOString(), now)).toBe("करिब ५ घण्टा बाँकी"));
+  it("last hour", () => expect(grantLabel(new Date(now + 20 * 60e3).toISOString(), now)).toBe("१ घण्टाभित्र सकिन्छ"));
+  it("labels fall back to the key", () => {
+    expect(fieldLabel("phone")).toBe("फोन नम्बर");
+    expect(fieldLabel("zzz")).toBe("zzz");
+  });
+});

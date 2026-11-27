@@ -12,7 +12,7 @@ import type { VProfile } from "@/lib/vansh/types";
 
 export type NavKey = "home" | "history" | "profile" | "lineage" | "members" | "contact" | "admin" | "none";
 export type AppTab = "me" | "fam" | "tree" | "mem" | "admin";
-export type AccountAction = "profile" | "add" | "kin" | "download" | "privacy" | "report" | "password" | "logout";
+export type AccountAction = "profile" | "add" | "kin" | "download" | "privacy" | "access" | "report" | "password" | "logout";
 
 export interface AccountInfo {
   name: string;
@@ -50,6 +50,7 @@ const ADMIN: Item = { k: "admin", l: "एडमिन", href: "/app?tab=admin", 
 const MENU: { a: AccountAction; l: string; icon: string; sep?: boolean }[] = [
   { a: "profile", l: "प्रोफाईल", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" },
   { a: "privacy", l: "गोपनीयता सेटिङ", icon: "M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5z", sep: true },
+  { a: "access", l: "पहुँच अनुरोध", icon: "M15 7a4 4 0 1 1-3.5 5.9L4 20v-3h3v-2h2v-2l2.6-2.1A4 4 0 0 1 15 7z" },
   { a: "report", l: "समस्या रिपोर्ट", icon: "M12 3l10 18H2zM12 10v5M12 18v.5" },
 ];
 

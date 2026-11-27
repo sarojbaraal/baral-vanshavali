@@ -17,6 +17,7 @@ import DetailPanel from "./DetailPanel";
 import { AdminView } from "./RequestViews";
 import ProfileView from "./ProfileView";
 import { PrivacyDialog, ReportDialog } from "./AccountDialogs";
+import { AccessDialog } from "./FieldAccess";
 import OverviewView from "./OverviewView";
 import { AnchorDialog, PasswordDialog, PersonForm } from "./PersonDialogs";
 import { useDailyEvents, useTodayLabel } from "./HeroAi";
@@ -149,6 +150,7 @@ function Shell() {
           else if (a === "kin") openDialog(<AnchorDialog />);
           else if (a === "download") openDialog(<DownloadDialog />);
           else if (a === "privacy") openDialog(<PrivacyDialog />);
+          else if (a === "access") openDialog(<AccessDialog />);
           else if (a === "report") openDialog(<ReportDialog />);
           else if (a === "password") openDialog(<PasswordDialog />);
           else if (a === "logout") db.auth.signOut();
