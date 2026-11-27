@@ -8,7 +8,7 @@
 --  * premium / moderator keep seeing phone, address, notes, documents, bio_facts, bio_draft.
 --  * general now also sees `bio` (the single public biography).
 --  * Owner levels: absent/'all' | 'near' | 'family' | 'me'. Unset defaults to 'near' for a living
---    member's birth_bs/phone/address, applied to `general` viewers only (trusted roles skip defaults).
+--    member's phone/address (birth date stays open unless the owner hides it), applied to `general` viewers only (trusted roles skip defaults).
 
 -- ---------- helpers (internal; not callable by API roles) ----------
 create or replace function public.jsonb_pick(j jsonb, keys text[]) returns jsonb
@@ -86,7 +86,7 @@ returns text[] language sql stable security definer set search_path = public as 
     select e.k from jsonb_each_text(coalesce(p.privacy, '{}'::jsonb)) e(k, v)
       where e.v = 'me' or (e.v = 'family' and not (p.id = any(fam))) or (e.v = 'near' and not (p.id = any(nr)))
     union all
-    select d.k from unnest(array['birth_bs','phone','address']) d(k)
+    select d.k from unnest(array['phone','address']) d(k)
       where r = 'general' and coalesce(p.is_living, true) and not (coalesce(p.privacy, '{}'::jsonb) ? d.k) and not (p.id = any(nr))
     union all
     select m.k from unnest(array['birth_bs','birth_time','photo_url']) m(k)
