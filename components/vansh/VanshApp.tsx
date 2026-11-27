@@ -48,7 +48,7 @@ function InstallButton() {
 }
 
 function Shell() {
-  const { db, phase, me, act, roles, setAct, tab, setTab, sel, perms, treeApi, people, openDialog, online, outbox, syncNow, discardOutbox, previewAs, setPreviewAs, g } = useVansh();
+  const { db, phase, me, act, roles, setAct, tab, setTab, profId, sel, perms, treeApi, people, openDialog, online, outbox, syncNow, discardOutbox, previewAs, setPreviewAs, g } = useVansh();
   const [wide, setWide] = useState(true);
   const [hdrH, setHdrH] = useState(72);
 
@@ -187,6 +187,7 @@ function Shell() {
       mem: <MembersView />,
       me: <ProfileView />,
       mine: <ProfileView />,
+      pf: <ProfileView pid={profId || undefined} />,
       admin: <AdminView />,
       ov: <OverviewView />,
     }[eff];
@@ -195,7 +196,7 @@ function Shell() {
     <>
       <SiteNav
         active={
-          eff === "tree" ? "lineage" : eff === "fam" || eff === "mem" ? "members" : eff === "me" || eff === "mine" ? "profile"
+          eff === "tree" ? "lineage" : eff === "fam" || eff === "mem" || eff === "pf" ? "members" : eff === "me" || eff === "mine" ? "profile"
           : eff === "admin" ? "admin" : "none"
         }
         account={account}

@@ -50,6 +50,10 @@ export interface Vansh {
   setPreviewAs: (id: string | null) => void;
   tab: TabKey;
   setTab: (t: TabKey) => void;
+  /** the person whose full profile page is open (tab "pf") */
+  profId: string | null;
+  openProfile: (id: string) => void;
+  closeProfile: () => void;
   sel: string | null;
   pick: (id: string, opts?: { fromTree?: boolean }) => void;
   unpick: () => void;
@@ -317,6 +321,29 @@ export function VanshProvider({ children }: { children: React.ReactNode }) {
     setSel(null);
   }, []);
 
+  // a person's full profile page; remembers where it was opened from so "back" lands there with the person selected
+  const [profId, setProfId] = useState<string | null>(null);
+  const profFrom = useRef<TabKey>("fam");
+  const openProfile = useCallback(
+    (id: string) => {
+      if (!perms.can(id)) {
+        setDialog({ node: <ViewRequestDialog personId={id} />, ed: false });
+        return;
+      }
+      if (tab !== "pf") profFrom.current = tab;
+      setProfId(id);
+      setTabState("pf");
+      setSel(null);
+      try { window.scrollTo({ top: 0 }); } catch {}
+    },
+    [perms, tab]
+  );
+  const closeProfile = useCallback(() => {
+    const from = profFrom.current === "pf" ? "fam" : profFrom.current;
+    setTabState(from);
+    setSel(profId);
+  }, [profId]);
+
   const pick = useCallback(
     (id: string) => {
       if (!perms.can(id)) {
@@ -475,7 +502,7 @@ export function VanshProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: Vansh = {
-    db, phase, me, act, setAct, roles, people, g, gPrint, access, perms, tab, setTab, sel, pick, unpick, toast, toastMsg,
+    db, phase, me, act, setAct, roles, people, g, gPrint, access, perms, tab, setTab, profId, openProfile, closeProfile, sel, pick, unpick, toast, toastMsg,
     reload, boot, openDialog, closeDialog, dialog, submit, send, treeApi, online, outbox, syncNow, discardOutbox,
     setRecovering: (v) => {
       recovering.current = v;

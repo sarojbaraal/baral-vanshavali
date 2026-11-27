@@ -13,12 +13,15 @@ const SECTION: Record<TabKey, string> = {
   me: "मेरो प्रोफाइल",
   mine: "मेरो प्रोफाइल",
   ov: "पारिवारिक तथ्यांक",
+  pf: "प्रोफाइल",
   admin: "प्रशासन",
 };
 const MAX_ANC = 3;
 
 export default function Crumbs({ tab }: { tab: TabKey }) {
-  const { g, sel, setTab, pick, unpick } = useVansh();
+  const { g, sel: selected, setTab, pick, unpick, profId, openProfile, closeProfile } = useVansh();
+  const isPf = tab === "pf";
+  const sel = isPf ? profId : selected;
   const lineage = useMemo(() => {
     const out: string[] = [];
     let cur = sel ? g.byId[sel] : undefined;
@@ -46,7 +49,7 @@ export default function Crumbs({ tab }: { tab: TabKey }) {
         <li><Link href="/">गृह</Link></li>
         <li>
           {person ? (
-            <button type="button" onClick={() => (unpick(), setTab(tab))}>{SECTION[tab]}</button>
+            <button type="button" onClick={() => (isPf ? closeProfile() : (unpick(), setTab(tab)))}>{isPf ? "सदस्यहरू" : SECTION[tab]}</button>
           ) : (
             <span aria-current="page">{SECTION[tab]}</span>
           )}
@@ -54,10 +57,10 @@ export default function Crumbs({ tab }: { tab: TabKey }) {
         {person && cut && <li className="lin"><span title="अझ माथिका पुर्खा" aria-hidden="true">…</span></li>}
         {person && shown.map((id) => (
           <li key={id} className="lin">
-            <button type="button" title="पुर्खा" onClick={() => pick(id)}>{g.byId[id]?.name}</button>
+            <button type="button" title="पुर्खा" onClick={() => (isPf ? openProfile(id) : pick(id))}>{g.byId[id]?.name}</button>
           </li>
         ))}
-        {person && <li className="cur"><span aria-current="page">{person.name}</span></li>}
+        {person && <li className="cur"><span aria-current="page">{person.name}{isPf ? " · प्रोफाइल" : ""}</span></li>}
       </ol>
     </nav>
   );
