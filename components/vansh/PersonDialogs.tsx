@@ -16,6 +16,7 @@ import { BRANCH_LEVELS, branchPrint } from "@/lib/vansh/branchPrint";
 import { loadPhotos } from "@/lib/vansh/exporters";
 import { DownloadPreview, useStampMaker } from "./DownloadPreview";
 import { useVansh } from "./VanshContext";
+import { pwnedCount, PWNED_MSG } from "@/lib/vansh/pwned";
 import { Avatar, DateField, PasswordField, ProofBox, Sx, SXMSG, personOptions, useSx } from "./ui";
 
 const siteUrl = () => `${location.origin}${location.pathname}`;
@@ -1005,8 +1006,9 @@ export function PasswordDialog() {
     });
   }, [db]);
   const save = async () => {
-    if (a.length < 6) return setErr("पासवर्ड कम्तिमा ६ अक्षरको हुनुपर्छ।");
+    if (a.length < 8) return setErr("पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ।");
     if (a !== b) return setErr("दुई पासवर्ड मिलेन।");
+    if (await pwnedCount(a)) return setErr(PWNED_MSG);
     const { error } = await db.auth.updateUser({ password: a });
     if (error) return setErr(error.message);
     toast(adding ? "✅ अब इमेल र पासवर्डले पनि लगइन गर्न सकिन्छ" : "✅ पासवर्ड परिवर्तन भयो");

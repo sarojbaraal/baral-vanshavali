@@ -2,6 +2,7 @@
 // Login / signup / forgot password, new-password, identity (position) request and "waiting for approval" screens.
 import React, { useEffect, useState } from "react";
 import { useVansh } from "./VanshContext";
+import { pwnedCount, PWNED_MSG } from "@/lib/vansh/pwned";
 import { DateField, PasswordField } from "./ui";
 import InvitePreview from "./InvitePreview";
 
@@ -90,6 +91,7 @@ export function AuthView() {
         const name = fn.trim();
         if (!name) return say("पूरा नाम लेख्नुहोस्।");
         if (pw.length < 8) return say("पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ");
+        if (await pwnedCount(pw)) return say(PWNED_MSG);
         if (!token && (!cf.trim() || !cg.trim())) return say("बुबा र हजुरबुबाको नाम लेख्नुहोस् (थाहा नभए 'थाहा छैन' लेख्नुहोस्)।");
         if (!nudged && !ct.bd.trim() && !ct.ph.trim()) {
           setNudged(true);
@@ -334,6 +336,7 @@ export function ResetView() {
   const go = async () => {
     if (a.length < 8) return setMsg({ t: "पासवर्ड कम्तिमा ८ अक्षरको हुनुपर्छ।" });
     if (a !== b) return setMsg({ t: "दुईटा पासवर्ड मिलेन।" });
+    if (await pwnedCount(a)) return setMsg({ t: PWNED_MSG });
     const { error } = await db.auth.updateUser({ password: a, data: { must_change_password: false } });
     if (error) return setMsg({ t: error.message });
     setRecovering(false);
