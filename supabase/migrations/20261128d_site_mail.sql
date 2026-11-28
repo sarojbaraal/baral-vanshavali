@@ -71,9 +71,6 @@ revoke execute on function public.mail_active(uuid), public.mail_staff(uuid) fro
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('mail', 'mail', false, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 on conflict (id) do update set public = false, file_size_limit = 5242880, allowed_mime_types = excluded.allowed_mime_types;
-drop policy if exists "mail read" on storage.objects;
-drop policy if exists "mail insert" on storage.objects;
-drop policy if exists "mail delete" on storage.objects;
 create policy "mail read" on storage.objects for select to authenticated
   using (bucket_id = 'mail' and public.mail_folder_ok(name, false));
 create policy "mail insert" on storage.objects for insert to authenticated
@@ -97,13 +94,14 @@ end $$;
 create or replace function public.mail_send(p_thread uuid, p_to uuid, p_subject text, p_body text, p_attachments jsonb default '[]'::jsonb)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); t mail_threads; body text := btrim(coalesce(p_body, '')); sub text := btrim(coalesce(p_subject, ''));
-        a jsonb; clean jsonb := '[]'::jsonb; sent int; other uuid;
+        a jsonb; clean jsonb := '[]'::jsonb; sent int; lim int; other uuid;
 begin
   if me is null or not public.mail_active(me) then raise exception 'लगइन आवश्यक छ'; end if;
   if p_thread is null then raise exception 'अमान्य अनुरोध'; end if;
   if char_length(body) < 1 or char_length(body) > 5000 then raise exception 'सन्देश १ देखि ५००० अक्षरको हुनुपर्छ'; end if;
   select count(*) into sent from mail_messages where sender_id = me and created_at > now() - interval '24 hours';
-  if sent >= case when public.mail_staff(me) then 100 else 30 end then raise exception 'आजको सन्देश सीमा पुग्यो, भोलि फेरि प्रयास गर्नुहोस्'; end if;
+  lim := case when public.mail_staff(me) then 100 else 30 end;
+  if sent >= lim then raise exception 'आजको सन्देश सीमा पुग्यो, भोलि फेरि प्रयास गर्नुहोस्'; end if;
 
   select * into t from mail_threads where id = p_thread for update;
   if found then
