@@ -18,6 +18,7 @@ import { AdminView } from "./RequestViews";
 import ProfileView from "./ProfileView";
 import { PrivacyDialog, ReportDialog } from "./AccountDialogs";
 import { AccessDialog } from "./FieldAccess";
+import { MailDialog } from "./Mail";
 import OverviewView from "./OverviewView";
 import { AnchorDialog, PasswordDialog, PersonForm } from "./PersonDialogs";
 import { useDailyEvents, useTodayLabel } from "./HeroAi";
@@ -135,6 +136,8 @@ function Shell() {
   ) : null;
   // new access requests: shown inside the site (a dot on the account menu and a message), never by email
   const [reqN, setReqN] = useState(0);
+  const [mailN, setMailN] = useState(0);
+  const seenMail = useRef<number | null>(null);
   const seenN = useRef<number | null>(null);
   const meId = me?.id;
   const noDialog = dialog === null;
@@ -149,6 +152,12 @@ function Shell() {
       setReqN(n);
       if (n > (seenN.current ?? 0)) toast(`🔑 ${n} नयाँ पहुँच अनुरोध — खाता मेनु → पहुँच अनुरोध`);
       seenN.current = n;
+      const { data: mu } = await db.rpc("mail_unread");
+      if (off) return;
+      const mn = typeof mu === "number" ? mu : 0;
+      setMailN(mn);
+      if (mn > (seenMail.current ?? 0)) toast(`✉ ${mn} नयाँ सन्देश — खाता मेनु → सन्देश`);
+      seenMail.current = mn;
     };
     poll();
     const t = setInterval(poll, 60000);
@@ -169,6 +178,7 @@ function Shell() {
         onRole: (k) => setAct(k as Role),
         staff: perms.isStaff,
         badge: reqN,
+        mailBadge: mailN,
         oauthOnly,
         version: `आज ${todayTxt}${perms.isAdm ? ` · Build: ${APP_VER}` : ` · ${APP_VER}`}`,
         onAction: (a) => {
@@ -178,6 +188,7 @@ function Shell() {
           else if (a === "download") openDialog(<DownloadDialog />);
           else if (a === "privacy") openDialog(<PrivacyDialog />);
           else if (a === "access") openDialog(<AccessDialog />);
+          else if (a === "mail") openDialog(<MailDialog />);
           else if (a === "report") openDialog(<ReportDialog />);
           else if (a === "password") openDialog(<PasswordDialog />);
           else if (a === "logout") db.auth.signOut();

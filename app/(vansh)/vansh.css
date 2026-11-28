@@ -1156,3 +1156,29 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .fa-ask { margin-left: .5rem; padding: .1rem .55rem; border-radius: 999px; border: 1px solid var(--mg); background: transparent; color: var(--mg); font: inherit; font-size: .8rem; font-style: normal; cursor: pointer; }
 
 .pvt { padding-right: 8.5rem; }
+
+/* site messages */
+.ml label { display: grid; gap: .25rem; font-size: .92rem; }
+.ml select, .ml input:not([type="file"]), .ml textarea { width: 100%; font: inherit; padding: .5rem .6rem; border: 1px solid var(--bd, #d9d6cc); border-radius: 8px; background: #fff; }
+.ml-compose { display: grid; gap: .6rem; }
+.ml-list { display: grid; gap: .4rem; max-height: 55vh; overflow: auto; }
+.ml-row { display: grid; gap: .1rem; text-align: left; width: 100%; padding: .55rem .7rem; border: 1px solid var(--bd, #e5e7eb); border-radius: 10px; background: transparent; font: inherit; color: inherit; cursor: pointer; }
+.ml-row.unread { background: rgba(179, 38, 30, .06); border-color: rgba(179, 38, 30, .35); }
+.ml-top { display: flex; justify-content: space-between; gap: .6rem; }
+.ml-sub { font-weight: 600; }
+.ml-snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-dot { display: inline-block; width: 9px; height: 9px; margin-right: .4rem; border-radius: 50%; background: #b3261e; }
+.ml-thread { display: grid; gap: .5rem; max-height: 45vh; overflow: auto; }
+.ml-msg { max-width: 92%; padding: .5rem .7rem; border-radius: 12px; background: rgba(49, 61, 36, .07); }
+.ml-msg.mine { justify-self: end; background: rgba(184, 134, 11, .14); }
+.ml-msg p { margin: .2rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ml-meta { font-size: .8rem; opacity: .7; }
+.ml-atts, .ml-files { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.ml-att, .ml-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .55rem; border: 1px solid var(--bd, #d9d6cc); border-radius: 999px; background: #fff; font: inherit; font-size: .85rem; color: inherit; }
+.ml-att { cursor: pointer; }
+.ml-chip button { border: 0; background: transparent; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 .1rem; }
+.ml-hint { font-size: .82rem; margin: 0; }
+.ml .ml-row { padding: .55rem .8rem; justify-items: stretch; align-content: start; min-height: 0; height: auto; box-shadow: none; text-align: left; }
+.ml .ml-top { width: 100%; }
+.ml .ml-list { padding-bottom: 2px; }
+.ml .ml-row { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-items: start; }
