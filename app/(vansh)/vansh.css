@@ -1154,3 +1154,5 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .fa-line { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .3rem 0; border-bottom: 1px solid var(--bd, #eee); }
 .fa-fields { display: grid; gap: .3rem; margin: .5rem 0; }
 .fa-ask { margin-left: .5rem; padding: .1rem .55rem; border-radius: 999px; border: 1px solid var(--mg); background: transparent; color: var(--mg); font: inherit; font-size: .8rem; font-style: normal; cursor: pointer; }
+
+.pvt { padding-right: 8.5rem; }

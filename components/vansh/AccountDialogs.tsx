@@ -21,10 +21,21 @@ const VIEWERS = [
   { k: "far", l: "टाढाको साधारण सदस्य" },
   { k: "trusted", l: "विश्वसनीय सदस्य (premium/moderator)" },
 ] as const;
-export function PrivacyDialog() {
+type LogRow = { kind: string; at: string; by: string | null };
+const LOG_KIND: Record<string, string> = {
+  steward_set: "सेटिङ बदल्नुभयो",
+  steward_grant: "कसैलाई अनुमति दिनुभयो",
+  steward_revoke: "कसैको अनुमति फिर्ता लिनुभयो",
+};
+
+/** `personId` set = a steward (admin, or a moderator of the person's branch) looking after a member who has no login. */
+export function PrivacyDialog({ personId }: { personId?: string } = {}) {
   const { db, me, g, closeDialog, toast, reload } = useVansh();
-  const p: VPerson | undefined = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
-  const [v, setV] = useState<Record<string, Level>>(() => ({ ...(p?.privacy || {}) }) as Record<string, Level>);
+  const steward = !!personId;
+  const p: VPerson | undefined = steward ? g.byId[personId!] : me?.position_person_id ? g.byId[me.position_person_id] : undefined;
+  const [v, setV] = useState<Record<string, Level>>(() => ({ ...(steward ? {} : p?.privacy || {}) }) as Record<string, Level>);
+  const [st, setSt] = useState<"loading" | "ok" | "claimed" | "no">(steward ? "loading" : "ok");
+  const [log, setLog] = useState<LogRow[]>([]);
   const [rem, setRem] = useState(!!me?.email_reminders);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,15 +43,26 @@ export function PrivacyDialog() {
   const [viewer, setViewer] = useState<Viewer>("far");
   useEffect(() => {
     let alive = true;
-    db.rpc("privacy_audience").then(({ data }: { data: Aud | null }) => alive && data && setAud(data));
+    if (steward) {
+      db.rpc("steward_privacy", { p_person: personId }).then(({ data }: { data: { can?: boolean; claimed?: boolean; privacy?: Record<string, Level> } | null }) => {
+        if (!alive) return;
+        if (!data?.can) return setSt(data?.claimed ? "claimed" : "no");
+        setV({ ...(data.privacy || {}) });
+        setSt("ok");
+      });
+      db.rpc("privacy_audience", { p_person: personId }).then(({ data }: { data: Aud | null }) => alive && data && setAud(data));
+    } else {
+      db.rpc("privacy_audience", {}).then(({ data }: { data: Aud | null }) => alive && data && setAud(data));
+      db.rpc("my_privacy_log").then(({ data }: { data: LogRow[] | null }) => alive && Array.isArray(data) && setLog(data));
+    }
     return () => {
       alive = false;
     };
-  }, [db]);
+  }, [db, steward, personId]);
   const save = async () => {
     setBusy(true);
-    const { error } = await db.rpc("set_my_privacy", { p_privacy: v });
-    const r2 = error ? null : await db.rpc("set_email_reminders", { p_on: rem });
+    const { error } = steward ? await db.rpc("set_person_privacy", { p_person: personId, p_privacy: v }) : await db.rpc("set_my_privacy", { p_privacy: v });
+    const r2 = error || steward ? null : await db.rpc("set_email_reminders", { p_on: rem });
     setBusy(false);
     if (error || r2?.error) return setErr((error || r2?.error)!.message);
     toast("✅ गोपनीयता सेटिङ सुरक्षित भयो");
@@ -55,6 +77,16 @@ export function PrivacyDialog() {
         <div className="row"><button className="ghost" onClick={closeDialog}>बन्द</button></div>
       </>
     );
+  if (steward && st !== "ok")
+    return (
+      <>
+        <h3>🔒 {p.name} को गोपनीयता</h3>
+        <p className="mut">
+          {st === "loading" ? "लोड हुँदैछ…" : st === "claimed" ? "यो सदस्यले आफ्नै खाता लिइसकेका छन्, त्यसैले उनले आफैँ नियन्त्रण गर्छन्।" : "यो व्यक्तिको गोपनीयता बदल्ने अधिकार तपाईंलाई छैन (एडमिन, वा आफ्नै शाखाको मोडरेटरले मात्र)।"}
+        </p>
+        <div className="row"><button className="ghost" onClick={closeDialog}>बन्द</button></div>
+      </>
+    );
   const n = (x?: number) => (typeof x === "number" ? ` · ${np(String(x))} जना` : "");
   const levels: [Level, string][] = [
     ["all", "सबै सदस्य"],
@@ -66,12 +98,27 @@ export function PrivacyDialog() {
   const set = (k: FieldKey, l: Level) => setV((o) => ({ ...o, [k]: l }));
   return (
     <>
-      <h3>🔒 गोपनीयता सेटिङ</h3>
-      <p className="mut">
-        वंशावलीको उद्देश्य जानकारी बाँड्नु हो, त्यसैले धेरै विवरण पूर्वनिर्धारित रूपमा खुला छन्। जुन विवरण कसले देख्छ भन्ने तपाईं छान्न सक्नुहुन्छ। एडमिन र तपाईं आफूले सधैँ देख्नुहुन्छ। नाम र नाता वंशवृक्षमै रहन्छन्।
-      </p>
+      <h3 className={steward ? "pvt" : undefined}>{steward ? `🔒 ${p.name} को गोपनीयता` : "🔒 गोपनीयता सेटिङ"}</h3>
+      {steward && (
+        <p className="mut" role="note">
+          यो सदस्यको आफ्नै लगइन छैन, त्यसैले तपाईंले प्रबन्धकका रूपमा सेटिङ राख्दै हुनुहुन्छ। उनले पछि खाता लिए यो परिवर्तन उनले देख्नेछन् र आफैँ बदल्न सक्नेछन्।
+        </p>
+      )}
+      {!steward && log.length > 0 && (
+        <div className="fa-card" role="note">
+          <b>तपाईंको तर्फबाट अरूले गरेका परिवर्तन</b>
+          {log.slice(0, 5).map((l, i) => (
+            <div key={i} className="mut">{l.by || "एडमिन"} — {LOG_KIND[l.kind] || l.kind} · {new Date(l.at).toLocaleDateString("ne-NP")}</div>
+          ))}
+        </div>
+      )}
+      {!steward && (
+        <p className="mut">
+          वंशावलीको उद्देश्य जानकारी बाँड्नु हो, त्यसैले धेरै विवरण पूर्वनिर्धारित रूपमा खुला छन्। जुन विवरण कसले देख्छ भन्ने तपाईं छान्न सक्नुहुन्छ। एडमिन र तपाईं आफूले सधैँ देख्नुहुन्छ। नाम र नाता वंशवृक्षमै रहन्छन्।
+        </p>
+      )}
       <p className="mut" style={{ fontSize: ".85rem" }}>
-        &ldquo;शाखा&rdquo; भनेको तपाईंका बुबा र आमा दुवैतर्फको हजुरबुबाबाट तलका सबै सन्तान र उनीहरूका जीवनसाथी हुन्।
+        &ldquo;शाखा&rdquo; भनेको {steward ? "यो सदस्यका" : "तपाईंका"} बुबा र आमा दुवैतर्फको हजुरबुबाबाट तलका सबै सन्तान र उनीहरूका जीवनसाथी हुन्।
       </p>
       {GROUPS.map((gr) => (
         <fieldset key={gr.t} className="pvg">
@@ -110,10 +157,10 @@ export function PrivacyDialog() {
           })}
         </ul>
       </div>
-      <label className="chk">
+      {!steward && <label className="chk">
         <input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />
         <span>📧 जन्मदिन/वर्षगाँठ अनुस्मारक {me?.email ? `(${me.email})` : ""} मा पठाउनुहोस्<small className="mut" style={{ display: "block" }}>तपाईं, जीवनसाथी, बुबाआमा, दाजुभाइ-दिदीबहिनी र सन्तानका मात्र; बिहान ७ बजे, आजको र भोलिको।</small></span>
-      </label>
+      </label>}
       <div className="msg">{err}</div>
       <div className="row">
         <button disabled={busy} onClick={save}>सुरक्षित गर्ने</button>

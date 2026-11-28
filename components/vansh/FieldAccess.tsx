@@ -8,6 +8,8 @@ type Incoming = { id: string; person_id: string; person: string; requester: stri
 type Outgoing = { id: string; person: string; fields: string[]; status: string; duration: string | null };
 type Given = { id: string; person: string; field: string; grantee: string; expires_at: string | null };
 type Received = { person: string; field: string; expires_at: string | null };
+type LogRow = { kind: string; at: string; person: string; by: string | null; detail: { fields?: string[]; field?: string; duration?: string } };
+const KIND: Record<string, string> = { owner_set: "मालिकले सेटिङ बदल्यो", steward_set: "प्रबन्धकले सेटिङ बदल्यो", steward_grant: "प्रबन्धकले अनुमति दियो", steward_revoke: "प्रबन्धकले अनुमति फिर्ता लियो" };
 type Data = { incoming: Incoming[]; outgoing: Outgoing[]; given: Given[]; received: Received[] };
 
 /** Ask the owner of a person for some of the fields that are hidden from you. */
@@ -49,14 +51,19 @@ export function FieldRequestDialog({ personId, fields, name }: { personId: strin
 
 /** One place for everything about access: requests to me, what I granted, what I asked, what I received. */
 export function AccessDialog() {
-  const { db, closeDialog, toast, reload } = useVansh();
+  const { db, closeDialog, toast, reload, perms } = useVansh();
   const [d, setD] = useState<Data | null>(null);
+  const [log, setLog] = useState<LogRow[]>([]);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const load = useCallback(async () => {
     const { data } = await db.rpc("my_field_access");
     setD((data as Data) || { incoming: [], outgoing: [], given: [], received: [] });
-  }, [db]);
+    if (perms.isAdm) {
+      const r = await db.rpc("admin_privacy_log");
+      if (Array.isArray(r.data)) setLog(r.data as LogRow[]);
+    }
+  }, [db, perms.isAdm]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
@@ -127,6 +134,20 @@ export function AccessDialog() {
           <span>{r.person} · {fieldLabel(r.field)} <em className="mut">({grantLabel(r.expires_at)})</em></span>
         </div>
       ))}
+      {perms.isAdm && (
+        <>
+          <h4>गोपनीयता लग (एडमिन) ({log.length})</h4>
+          {log.length === 0 && none}
+          {log.slice(0, 30).map((l, i) => (
+            <div key={i} className="fa-line">
+              <span><b>{l.by || "—"}</b> · {l.person} · {KIND[l.kind] || l.kind}
+                {(l.detail.fields || (l.detail.field ? [l.detail.field] : [])).length > 0 && <em className="mut"> ({(l.detail.fields || [l.detail.field!]).map(fieldLabel).join(", ")})</em>}
+              </span>
+              <em className="mut">{new Date(l.at).toLocaleDateString("ne-NP")}</em>
+            </div>
+          ))}
+        </>
+      )}
       <div className="row"><button className="ghost" onClick={closeDialog}>बन्द</button></div>
     </div>
   );

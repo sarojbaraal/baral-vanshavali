@@ -13,6 +13,7 @@ import { useVansh } from "./VanshContext";
 import { Avatar, KidCount } from "./ui";
 import { AddMenu, DeleteDialog, HideDialog, InviteDialog, PersonForm } from "./PersonDialogs";
 import { FieldRequestDialog } from "./FieldAccess";
+import { PrivacyDialog } from "./AccountDialogs";
 
 function Box({ c, ic, l, children, mg, lock, ask }: { c: string; ic: string; l: string; children?: React.ReactNode; mg?: boolean; lock?: boolean; ask?: () => void }) {
   if (!children && !lock) return null;
@@ -265,6 +266,11 @@ export default function DetailPanel({
             <button className="ghost" onClick={showInChart} title="चार्टमा हेर्नुहोस्">
               <i>🌳</i>चार्ट
             </button>
+            {perms.isStaff && me?.position_person_id !== p.id && (
+              <button className="ghost" onClick={() => openDialog(<PrivacyDialog personId={p.id} />)} title="गोपनीयता (प्रबन्धक)">
+                <i>🔒</i>गोपनीयता
+              </button>
+            )}
             {isAdm && (
               <button className="ghost" disabled={busyAi} onClick={aiSummary} title="AI सारांश">
                 <i>📖</i>शारांश
