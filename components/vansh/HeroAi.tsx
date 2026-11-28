@@ -26,9 +26,9 @@ export function useFamilyEvents() {
 }
 
 function line(e: FamilyEvent): string {
-  if (e.kind === "birthday") return e.own ? `तपाईंको जन्मदिन ${whenLabel(e.days)}` : `${e.person.name} · जन्मदिन ${whenLabel(e.days)}`;
+  if (e.kind === "birthday") return e.own ? `तपाईंको जन्मदिन · ${whenLabel(e.days)}` : `${e.person.name} · जन्मदिन · ${whenLabel(e.days)}`;
   if (e.kind === "shraddha") return `${e.person.name} को श्राद्ध · ${whenLabel(e.days)}`;
-  return `${e.person.name}${e.spouse ? " र " + e.spouse.name : ""} · ${e.detail} ${whenLabel(e.days)}`;
+  return `${e.person.name}${e.spouse ? " र " + e.spouse.name : ""} · ${e.detail} · ${whenLabel(e.days)}`;
 }
 
 /** "आज २०८३ कार्तिक १७ गते" (used in the popup and the ⓘ tip, not in the hero). */
@@ -96,7 +96,7 @@ export function EventsDialog({ greeting }: { greeting?: boolean }) {
     <>
       <h3>{greeting ? "नमस्ते 🙏 " : ""}आज {todayLabel()}</h3>
       {own && !upcoming.some((u) => u.person.id === own.person.id) && (
-        <p className="mut">🎂 तपाईंको जन्मदिन {whenLabel(own.days)} ({neDate(own.person.birth_bs)})</p>
+        <p className="mut">🎂 तपाईंको जन्मदिन · {whenLabel(own.days)} ({neDate(own.person.birth_bs)})</p>
       )}
       {upcoming.length ? <div className="evl">{upcoming.map(row)}</div> : <p className="mut">आगामी ७ दिनमा कुनै अवसर छैन।</p>}
       {recent.length > 0 && (
