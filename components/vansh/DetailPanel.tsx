@@ -267,7 +267,7 @@ export default function DetailPanel({
               <i>🌳</i>चार्ट
             </button>
             {perms.isStaff && me?.position_person_id !== p.id && (
-              <button className="ghost" onClick={() => openDialog(<PrivacyDialog personId={p.id} />)} title="गोपनीयता (प्रबन्धक)">
+              <button className="ghost" onClick={() => openDialog(<PrivacyDialog personId={p.id} />)} title="गोपनीयता सेटिङ">
                 <i>🔒</i>गोपनीयता
               </button>
             )}

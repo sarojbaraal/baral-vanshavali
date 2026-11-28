@@ -9,7 +9,7 @@ type Outgoing = { id: string; person: string; fields: string[]; status: string; 
 type Given = { id: string; person: string; field: string; grantee: string; expires_at: string | null };
 type Received = { person: string; field: string; expires_at: string | null };
 type LogRow = { kind: string; at: string; person: string; by: string | null; detail: { fields?: string[]; field?: string; duration?: string } };
-const KIND: Record<string, string> = { owner_set: "मालिकले सेटिङ बदल्यो", steward_set: "प्रबन्धकले सेटिङ बदल्यो", steward_grant: "प्रबन्धकले अनुमति दियो", steward_revoke: "प्रबन्धकले अनुमति फिर्ता लियो" };
+const KIND: Record<string, string> = { owner_set: "आफैंद्वारा सेटिङ परिवर्तन गरिएको", steward_set: "एडमिनद्वारा सेटिङ परिवर्तन गरिएको", steward_grant: "एडमिनद्वारा अनुमति दिईयो", steward_revoke: "एडमिनद्वारा अनुमति फिर्ता लिईयो" };
 type Data = { incoming: Incoming[]; outgoing: Outgoing[]; given: Given[]; received: Received[] };
 
 /** Ask the owner of a person for some of the fields that are hidden from you. */
@@ -30,7 +30,7 @@ export function FieldRequestDialog({ personId, fields, name }: { personId: strin
   return (
     <div className="dlw">
       <h3>🔑 विवरण हेर्न अनुमति माग्ने</h3>
-      <p className="mut">{name} ले यी विवरण लुकाएका छन्। उनले अनुमति दिए मात्र तपाईंले देख्नुहुन्छ। उनले एक पटक (२४ घण्टा) वा सधैंका लागि दिन सक्छन्, र जहिले पनि फिर्ता लिन सक्छन्।</p>
+      <p className="mut">{name} ले यी विवरण लुकाएका छन्। वहाँले अनुमति दिए मात्र तपाईंले देख्नुहुन्छ। अनुमति एक पटक (२४ घण्टा) वा सधैंका लागि दिन सक्नुहुन्छ, र जहिले पनि फिर्ता लिन सकिन्छ।</p>
       <div className="fa-fields" role="group" aria-label="माग्ने विवरण">
         {fields.map((f) => (
           <label key={f} className="chk">
@@ -39,7 +39,7 @@ export function FieldRequestDialog({ personId, fields, name }: { personId: strin
           </label>
         ))}
       </div>
-      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={300} placeholder="किन चाहिएको हो? (जस्तै: पारिवारिक अभिलेखका लागि)" style={{ width: "100%" }} />
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={300} placeholder="चाहिएको कारण के हो? (जस्तै: पारिवारिक अभिलेखका लागि)" style={{ width: "100%" }} />
       <div className="msg">{err}</div>
       <div className="row">
         <button disabled={busy || !sel.length} onClick={send}>{busy ? "पठाउँदै…" : "अनुरोध पठाउने"}</button>
@@ -102,7 +102,7 @@ export function AccessDialog() {
             <button disabled={!!busy} onClick={() => act(r.id, () => db.rpc("review_field_request", { p_id: r.id, p_decision: "once" }), "✅ २४ घण्टाका लागि अनुमति दिइयो")}>एक पटक (२४ घण्टा)</button>
             <button disabled={!!busy} onClick={() => act(r.id, () => db.rpc("review_field_request", { p_id: r.id, p_decision: "always" }), "✅ सधैंका लागि अनुमति दिइयो")}>सधैं</button>
             <button className="ghost" disabled={!!busy} onClick={() => act(r.id, () => db.rpc("review_field_request", { p_id: r.id, p_decision: "deny" }), "अनुरोध अस्वीकार गरियो")}>अस्वीकार</button>
-            <button className="ghost" disabled={!!busy} title="यो सदस्यले फेरि अनुरोध पठाउन सक्दैन" onClick={() => confirm("यो सदस्यले अब उप्रान्त अनुरोध पठाउन नपाउने बनाउने?") && act(r.id, () => db.rpc("review_field_request", { p_id: r.id, p_decision: "block" }), "सदस्य रोकियो")}>रोक्ने</button>
+            <button className="ghost" disabled={!!busy} title="यो सदस्यले फेरि अनुरोध पठाउन सक्दैन" onClick={() => confirm("यो सदस्यले अब उप्रान्त अनुरोध पठाउन नपाउने बनाउने?") && act(r.id, () => db.rpc("review_field_request", { p_id: r.id, p_decision: "block" }), "सदस्यको अनुरोध रोकियो")}>रोक्ने</button>
           </div>
         </div>
       ))}

@@ -88,7 +88,7 @@ export function familyEvents(people: VPerson[], o: EventsOptions): EventsResult 
     if (nx.days <= ahead) upcoming.push(ev);
     else {
       const rc = recentBs(p.birth_bs!, now, back);
-      if (rc) recent.push({ ...ev, days: rc.days, detail: born && rc.year - born > 0 ? `${np(rc.year - born)} वर्ष पुगे` : "" });
+      if (rc) recent.push({ ...ev, days: rc.days, detail: born && rc.year - born > 0 ? `${np(rc.year - born)} वर्ष पुग्नुभयो` : "" });
     }
   });
 
@@ -135,10 +135,10 @@ export function familyEvents(people: VPerson[], o: EventsOptions): EventsResult 
 
 /** "आज", "भोलि", "३ दिनमा", "२ दिन अघि". */
 export function whenLabel(days: number): string {
-  if (days === 0) return "आज";
-  if (days === 1) return "भोलि";
-  if (days === -1) return "हिजो";
-  return days > 0 ? `${np(days)} दिनमा` : `${np(-days)} दिन अघि`;
+  if (days === 0) return "आज - ";
+  if (days === 1) return "भोलि - ";
+  if (days === -1) return "हिजो - ";
+  return days > 0 ? `${np(days)} दिनमा - ` : `${np(-days)} दिन अघि - `;
 }
 
 export { adToBsStr };

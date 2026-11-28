@@ -19,7 +19,7 @@ const VIEWERS = [
   { k: "family", l: "परिवारको साधारण सदस्य" },
   { k: "branch", l: "शाखाको साधारण सदस्य" },
   { k: "far", l: "टाढाको साधारण सदस्य" },
-  { k: "trusted", l: "विश्वसनीय सदस्य (premium/moderator)" },
+  { k: "trusted", l: "बंसज सदस्य" },
 ] as const;
 type LogRow = { kind: string; at: string; by: string | null };
 const LOG_KIND: Record<string, string> = {
@@ -101,7 +101,7 @@ export function PrivacyDialog({ personId }: { personId?: string } = {}) {
       <h3 className={steward ? "pvt" : undefined}>{steward ? `🔒 ${p.name} को गोपनीयता` : "🔒 गोपनीयता सेटिङ"}</h3>
       {steward && (
         <p className="mut" role="note">
-          यो सदस्यको आफ्नै लगइन छैन, त्यसैले तपाईंले प्रबन्धकका रूपमा सेटिङ राख्दै हुनुहुन्छ। उनले पछि खाता लिए यो परिवर्तन उनले देख्नेछन् र आफैँ बदल्न सक्नेछन्।
+          यो सदस्यको आफ्नै लगइन छैन, त्यसैले तपाईंले कार्यकारीका रूपमा सेटिङ राख्दै हुनुहुन्छ। वहाँको खातामा बनेपछि वहाँले यो परिवर्तन देख्नुहुनेछ र बदल्न सक्नुहुनेछ।
         </p>
       )}
       {!steward && log.length > 0 && (
@@ -136,10 +136,10 @@ export function PrivacyDialog({ personId }: { personId?: string } = {}) {
         </fieldset>
       ))}
       <p className="mut" style={{ fontSize: ".85rem" }}>
-        फोन र ठेगाना नछान्दा साधारण सदस्यले देख्दैनन्; छानेपछि छानिएको घेराभित्रका सबै सदस्यले देख्छन्। १८ वर्षमुनिकाको जन्ममिति/फोटो नजिकका नातामा मात्र सीमित रहन्छ।
+        फोन र ठेगाना नछान्दा साधारण सदस्यले देख्दैनन्; छानेपछि छानिएको घेराभित्रका सबै सदस्यले देख्छन्। १८ वर्षमुनिकाको जन्ममिति/फोटो नजिकका नाताले मात्र देख्ने बनाईएको छ।
       </p>
       <div className="pvv" aria-live="polite">
-        <b>👁 अरूले कसरी देख्छन्</b>
+        <b>कसले के के देख्छ</b>
         <div className="pvseg" role="tablist">
           {VIEWERS.map((x) => (
             <button key={x.k} type="button" role="tab" aria-selected={viewer === x.k} className={viewer === x.k ? "on" : ""} onClick={() => setViewer(x.k)}>{x.l}</button>

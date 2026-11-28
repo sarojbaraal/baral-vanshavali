@@ -356,12 +356,12 @@ export function DialogHost() {
           <button
             type="button"
             className="ghost dlg-peek"
-            title="थिचिराख्दा विन्डो पारदर्शी हुन्छ — पछाडिको सामग्री हेर्न"
+            title="विन्डो पारदर्शी बनाउन थिचिराख्नुहोस्"
             aria-label="पछाडि हेर्ने"
             onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setPeek(true); }}
             onPointerUp={() => setPeek(false)}
             onPointerCancel={() => setPeek(false)}
-          >👁</button>
+          >👁️</button>
         </div>
       )}
       {dialog?.node}
