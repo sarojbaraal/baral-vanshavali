@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { pwnedCount, PWNED_MSG } from "@/lib/vansh/pwned";
 import GlassCard from "@/components/auth/GlassCard";
 
 export default function SignupPage() {
@@ -25,6 +26,11 @@ export default function SignupPage() {
     setErrorMsg(null);
 
     try {
+      if (await pwnedCount(password)) {
+        setErrorMsg(PWNED_MSG);
+        setIsLoading(false);
+        return;
+      }
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
