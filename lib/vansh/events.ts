@@ -135,10 +135,10 @@ export function familyEvents(people: VPerson[], o: EventsOptions): EventsResult 
 
 /** "आज", "भोलि", "३ दिनमा", "२ दिन अघि". */
 export function whenLabel(days: number): string {
-  if (days === 0) return "आज - ";
-  if (days === 1) return "भोलि - ";
-  if (days === -1) return "हिजो - ";
-  return days > 0 ? `${np(days)} दिनमा - ` : `${np(-days)} दिन अघि - `;
+  if (days === 0) return "आज";
+  if (days === 1) return "भोलि";
+  if (days === -1) return "हिजो";
+  return days > 0 ? `${np(days)} दिनमा` : `${np(-days)} दिन अघि`;
 }
 
 export { adToBsStr };
