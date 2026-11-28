@@ -1182,3 +1182,4 @@ label.chk input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 
 .ml .ml-top { width: 100%; }
 .ml .ml-list { padding-bottom: 2px; }
 .ml .ml-row { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-items: start; }
+.ml-msg.failed { background: rgba(179,38,30,.1); }
