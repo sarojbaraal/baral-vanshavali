@@ -26,6 +26,7 @@ import { AnchorDialog, PersonForm } from "./PersonDialogs";
 import { useTodayLabel } from "./HeroAi";
 import { DownloadPreview, useStampMaker, type Prepared } from "./DownloadPreview";
 import { ChartMenu, ZoomPill } from "./ChartMenu";
+import { FieldRequestDialog } from "./FieldAccess";
 
 export default function ProfileView({ pid }: { pid?: string }) {
   const { db, me, g, gPrint, perms, toast, reload, openDialog, closeDialog, setTab, pick, openProfile, closeProfile } = useVansh();
@@ -238,7 +239,13 @@ export default function ProfileView({ pid }: { pid?: string }) {
             {facts.map((f) => (
               <React.Fragment key={f.k}>
                 <dt>{f.k}</dt>
-                <dd>{f.v}</dd>
+                <dd className={f.locked ? "lockd" : undefined} title={f.locked ? "यो विवरण मालिकले वा साइटको नियमले लुकाएको छ" : undefined}>{f.v}
+                  {f.locked && f.key && other && me?.position_person_id && (
+                    <button type="button" className="fa-ask" onClick={() => openDialog(<FieldRequestDialog personId={p.id} fields={[f.key!]} name={p.name} />)}>
+                      अनुमति माग्ने
+                    </button>
+                  )}
+                </dd>
               </React.Fragment>
             ))}
           </dl>

@@ -7,7 +7,13 @@ import { maritalLabel } from "./text";
 export interface Fact {
   k: string;
   v: string;
+  /** for a locked row: the database field it stands for (so the viewer can ask for it) */
+  key?: string;
+  /** hidden by the owner / site rules: v is the "🔒 गोप्य" placeholder */
+  locked?: boolean;
 }
+
+export const LOCKED_TEXT = "🔒 गोप्य";
 
 export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; nm?: (p: VPerson) => string } = {}): Fact[] {
   const out: Fact[] = [];
@@ -15,25 +21,41 @@ export function profileFacts(g: Graph, p: VPerson, opts: { showEmail?: boolean; 
     const t = (v || "").toString().trim();
     if (t) out.push({ k, v: t });
   };
+  const L = new Set(p.locked_fields || []);
+  // a hidden field keeps its row, so the viewer sees that something exists but is private
+  const lock = (key: string, label: string) => {
+    if (L.has(key)) out.push({ k: label, v: LOCKED_TEXT, locked: true, key });
+  };
   const age = ageLabel(p);
   add("जन्म मिति (वि.सं.)", dateProof(p.birth_bs, p.birth_exact) + (age && p.is_living !== false ? ` · उमेर ${age}` : ""));
+  lock("birth_bs", "जन्म मिति (वि.सं.)");
   add("जन्म समय", neTime(p.birth_time));
   add("जन्म स्थान", p.birth_place);
+  lock("birth_place", "जन्म स्थान");
   if (p.is_living === false) {
     add("मृत्यु मिति (वि.सं.)", dateProof(p.death_bs, p.death_exact) || "दिवङ्गत");
     add("दिवङ्गत", deceasedLine(p));
     add("मृत्यु स्थान", p.death_place);
   }
   add("हालको ठेगाना", p.is_living === false ? "" : g.addrOf(p));
+  if (p.is_living !== false) lock("address", "हालको ठेगाना");
   add("शिक्षा", p.education);
+  lock("education", "शिक्षा");
   add("पेशा", p.occupation);
+  lock("occupation", "पेशा");
   add("कार्यरत संस्था", p.organization);
+  lock("organization", "कार्यरत संस्था");
   add("बैवाहिक स्थिति", p.marital_status && p.marital_status !== "unknown" ? maritalLabel(p.marital_status) : "");
   add("विवाह मिति (वि.सं.)", dateProof(p.marriage_bs, p.marriage_exact));
-  if (p.marital_status === "divorced") add("सम्बन्ध विच्छेद मिति (वि.सं.)", dateProof(p.divorce_bs, p.divorce_exact));
+  lock("marriage_bs", "विवाह मिति (वि.सं.)");
+  if (p.marital_status === "divorced") {
+    add("सम्बन्ध विच्छेद मिति (वि.सं.)", dateProof(p.divorce_bs, p.divorce_exact));
+    lock("divorce_bs", "सम्बन्ध विच्छेद मिति (वि.सं.)");
+  }
   const sp = g.spousesOf(p).map((id) => g.byId[id]).filter(Boolean);
   add(p.gender === "F" ? "पति" : p.gender === "M" ? "पत्नी" : "जीवनसाथी", sp.map((x) => (opts.nm ? opts.nm(x) : x.name)).join(", "));
   add("फोन", p.phone);
+  lock("phone", "फोन");
   if (opts.showEmail) add("इमेल", p.email);
   return out;
 }
