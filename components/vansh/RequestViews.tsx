@@ -75,10 +75,52 @@ export function MineView() {
 
 // ---------------- admin ----------------
 type Sec = "req" | "new" | "mem" | "hist" | "rev" | "view" | "as" | "msg" | "hid";
-interface SiteMsg { id: string; kind: "contact" | "problem"; name: string | null; email: string | null; subject: string | null; body: string; page: string | null; sender: string | null; status: "new" | "read" | "done"; created_at: string }
+interface SiteMsg { id: string; kind: "contact" | "problem"; name: string | null; email: string | null; subject: string | null; body: string; page: string | null; sender: string | null; status: "new" | "read" | "done"; created_at: string; replies?: { id: string; body: string; status: string; at: string; by: string }[] }
 
-/** Messages from the contact form and "समस्या रिपोर्ट" (admin only). */
-function InboxPanel({ rows, onSet }: { rows: SiteMsg[]; onSet: (id: string, st: SiteMsg["status"]) => void }) {
+/** One reply box under a message: written here, e-mailed to the sender by the reply-message function. */
+function ReplyBox({ m, onSent }: { m: SiteMsg; onSent: () => void }) {
+  const { db, toast } = useVansh();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const send = async () => {
+    if (!text.trim()) return setErr("जवाफ लेख्नुहोस्");
+    setBusy(true);
+    setErr("");
+    const { data, error } = await db.functions.invoke("reply-message", { body: { message_id: m.id, body: text } });
+    setBusy(false);
+    let msg = (data as { error?: string } | null)?.error || "";
+    if (!msg && error) {
+      try { msg = ((await (error as { context?: Response }).context?.json?.()) as { error?: string })?.error || ""; } catch { /* keep generic */ }
+      msg = msg || "जवाफ पठाउन सकिएन";
+    }
+    if (msg) return setErr(msg);
+    toast("✅ जवाफ इमेलबाट पठाइयो");
+    setText("");
+    setOpen(false);
+    onSent();
+  };
+  if (!m.email) return <p className="mut">यो सन्देशमा इमेल ठेगाना छैन, त्यसैले इमेलबाट जवाफ दिन मिल्दैन।</p>;
+  if (!open) return <button onClick={() => setOpen(true)}>↩ जवाफ लेख्ने</button>;
+  return (
+    <div className="ml-compose ml">
+      <label>
+        {m.email} लाई जवाफ
+        <textarea value={text} rows={5} maxLength={5000} onChange={(e) => setText(e.target.value)} autoFocus />
+      </label>
+      <p className="mut ml-hint">यो इमेलबाट जान्छ; पठाउनेले जवाफ दिए परिवारको इमेल बक्समा पुग्छ।</p>
+      <div className="msg">{err}</div>
+      <div className="row">
+        <button disabled={busy} onClick={send}>{busy ? "पठाउँदै…" : "इमेल पठाउने"}</button>
+        <button className="ghost" disabled={busy} onClick={() => setOpen(false)}>रद्द</button>
+      </div>
+    </div>
+  );
+}
+
+/** Messages from the contact form and "समस्या रिपोर्ट" (admin and moderator): read, answer by e-mail, mark done. */
+function InboxPanel({ rows, onSet, onSent }: { rows: SiteMsg[]; onSet: (id: string, st: SiteMsg["status"]) => void; onSent: () => void }) {
   if (!rows.length) return <div className="card">अहिलेसम्म कुनै सन्देश आएको छैन।</div>;
   return (
     <>
@@ -94,9 +136,15 @@ function InboxPanel({ rows, onSet }: { rows: SiteMsg[]; onSet: (id: string, st: 
             {[m.name || m.sender, m.email].filter(Boolean).join(" · ")}
             {m.page ? ` · पृष्ठ: ${m.page}` : ""}
           </p>
+          {(m.replies || []).map((r) => (
+            <div key={r.id} className={"ml-msg mine" + (r.status === "failed" ? " failed" : "")}>
+              <div className="ml-meta">{r.by} · {new Date(r.at).toLocaleString("ne-NP")}{r.status === "failed" ? " · ⚠ पठाउन सकिएन" : " · इमेलबाट पठाइयो"}</div>
+              <p>{r.body}</p>
+            </div>
+          ))}
           <div className="row">
-            {m.email && <a className="btn ghost" href={`mailto:${m.email}?subject=${encodeURIComponent("Re: " + (m.subject || "बराल वंशावली"))}`}>इमेलबाट जवाफ</a>}
-            {m.status !== "done" ? <button onClick={() => onSet(m.id, "done")}>सकियो</button> : <button className="ghost" onClick={() => onSet(m.id, "new")}>फेरि खोल्ने</button>}
+            <ReplyBox m={m} onSent={onSent} />
+            {m.status !== "done" ? <button className="ghost" onClick={() => onSet(m.id, "done")}>सकियो</button> : <button className="ghost" onClick={() => onSet(m.id, "new")}>फेरि खोल्ने</button>}
             {m.status === "new" && <button className="ghost" onClick={() => onSet(m.id, "read")}>पढियो</button>}
           </div>
         </div>
@@ -201,6 +249,7 @@ function UserCard({ u, isNew, onSave, onAnchor, onSuspend, onDelete }: { u: VPro
 export function AdminView() {
   const { db, g, perms, toast, reload, openDialog } = useVansh();
   const adm = perms.isAdm;
+  const staff = perms.isStaff;
   const [sec, setSec] = useState<Sec>("req");
   const [reqCat, setReqCat] = useState("all");
   const [histOpen, setHistOpen] = useState<string[]>([]);
@@ -218,16 +267,18 @@ export function AdminView() {
         ? db.from("change_requests").select(REQ_SEL).neq("status", "pending").order("created_at", { ascending: false }).limit(200)
         : Promise.resolve({ data: [] }),
     ]);
+    if (staff) {
+      const { data: ms } = await db.rpc("list_messages");
+      setMsgs((ms as SiteMsg[]) || []);
+    }
     if (adm) {
       const { data: vr } = await db.rpc("admin_view_requests");
       setViewN(((vr as { status: string }[]) || []).filter((r) => r.status === "pending").length);
       const { data: ar } = await db.rpc("admin_anchor_requests");
       setAncN(((ar as unknown[]) || []).length);
-      const { data: ms } = await db.rpc("list_messages");
-      setMsgs((ms as SiteMsg[]) || []);
     }
     setData({ reqs: (reqs as ChangeRequest[]) || [], users: (users as VProfile[]) || [], hist: (hist as ChangeRequest[]) || [] });
-  }, [db, adm]);
+  }, [db, adm, staff]);
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
@@ -246,7 +297,7 @@ export function AdminView() {
   const groups = groupBatches(reqs);
   const okIds = hist.filter((r) => r.status === "approved").map((r) => r.id);
   const cn = (c: string) => (c === "all" ? groups.length : groups.filter((x) => x.items[0].action === c).length);
-  const keys: Sec[] = adm ? ["req", "msg", "view", "new", "mem", "rev", "hid", "as", "hist"] : ["req"];
+  const keys: Sec[] = adm ? ["req", "msg", "view", "new", "mem", "rev", "hid", "as", "hist"] : staff ? ["req", "msg"] : ["req"];
   const cur: Sec = keys.includes(sec) ? sec : keys[0];
 
   const approve = async (ids: string[]) => {
@@ -382,7 +433,7 @@ export function AdminView() {
   } else if (cur === "as") {
     body = <PreviewAsPanel />;
   } else if (cur === "msg") {
-    body = <InboxPanel rows={msgs} onSet={setMsg} />;
+    body = <InboxPanel rows={msgs} onSet={setMsg} onSent={fetchAll} />;
   } else if (cur === "new") {
     body = <>{pend.map((u) => <UserCard key={u.id} u={u} isNew onSave={saveUser} onAnchor={() => anchorFor(u)} onSuspend={suspend} onDelete={delUser} />)}</>;
   } else if (cur === "mem") {
