@@ -211,6 +211,47 @@ async function geminiBio(key: string, f: Record<string, string>, baral: boolean)
   return bio;
 }
 
+// Collects the recorded facts of one person (public-level only) and writes the long biography.
+// deno-lint-ignore no-explicit-any
+async function composeBio(db: any, key: string, p: any, facts: string[]): Promise<string> {
+  const ids = [p.father_id, p.mother_id, p.spouse_id, ...(p.more_spouse_ids || [])].filter(Boolean);
+  const { data: near } = ids.length ? await db.from("people").select("id,name,father_id,mother_id").in("id", ids).eq("hidden", false) : { data: [] };
+  const byId: Record<string, { id: string; name: string; father_id: string | null; mother_id: string | null }> = {};
+  (near || []).forEach((x: { id: string; name: string; father_id: string | null; mother_id: string | null }) => (byId[x.id] = x));
+  const gids = [byId[p.father_id]?.father_id, byId[p.father_id]?.mother_id, byId[p.mother_id]?.father_id, byId[p.mother_id]?.mother_id].filter(Boolean);
+  const { data: gp } = gids.length ? await db.from("people").select("id,name").in("id", gids).eq("hidden", false) : { data: [] };
+  const gname = (id: string | null | undefined) => (gp || []).find((x: { id: string }) => x.id === id)?.name || "";
+  const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`).eq("hidden", false);
+  const sib = p.father_id || p.mother_id
+    ? (await db.from("people").select("id,name,father_id,mother_id").or([p.father_id && `father_id.eq.${p.father_id}`, p.mother_id && `mother_id.eq.${p.mother_id}`].filter(Boolean).join(",")).eq("hidden", false)).data || []
+    : [];
+  const fa = byId[p.father_id], mo = byId[p.mother_id];
+  const baral = (p.gender === "F" ? lastWord(fa?.name) : lastWord(p.name)) === "बराल";
+  return await geminiBio(key, {
+    "नाम": p.name,
+    "लिङ्ग": p.gender === "F" ? "महिला" : p.gender === "M" ? "पुरुष" : "",
+    "अवस्था": p.is_living === false ? "दिवङ्गत" : "जीवित",
+    "जन्म मिति (वि.सं.)": isOpen(p, "birth_bs", true) && !isMinor(p) ? p.birth_bs || "" : "",
+    "मृत्यु मिति (वि.सं.)": p.death_bs || "",
+    "जन्मस्थान": isOpen(p, "birth_place", true) ? p.birth_place || "" : "",
+    "हालको ठेगाना": p.is_living === false || !isOpen(p, "address", false) ? "" : p.address || "",
+    "पिता": fa?.name || "",
+    "माता": mo?.name || "",
+    "बुबाका पिता (हजुरबुबा)": gname(fa?.father_id),
+    "बुबाकी आमा (हजुरआमा)": gname(fa?.mother_id),
+    "आमाका पिता": gname(mo?.father_id),
+    "आमाकी आमा": gname(mo?.mother_id),
+    "दाजुभाइ/दिदीबहिनी": sib.filter((x: { id: string }) => x.id !== p.id).map((x: { name: string }) => x.name).join(", "),
+    "जीवनसाथी": [p.spouse_id, ...(p.more_spouse_ids || [])].map((id: string) => byId[id]?.name).filter(Boolean).join(", "),
+    "विवाह मिति": isOpen(p, "marriage_bs", true) ? p.marriage_bs || "" : "",
+    "सन्तान": (kids || []).map((k: { name: string }) => k.name).join(", "),
+    "शिक्षा": isOpen(p, "education", true) ? p.education || "" : "",
+    "पेशा": isOpen(p, "occupation", true) ? p.occupation || "" : "",
+    "संस्था": isOpen(p, "organization", true) ? p.organization || "" : "",
+    "व्यक्तिले आफैँ लेखेको जीवनीबाट सिकेका तथ्य": facts.join("; "),
+  }, baral);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "POST मात्र" }, 405);
@@ -228,7 +269,7 @@ Deno.serve(async (req: Request) => {
     const { data: au, error: ae } = await db.auth.getUser(token);
     if (ae || !au.user) return json({ error: "सेसन अमान्य वा सकिएको छ।" }, 401);
 
-    const { data: prof } = await db.from("profiles").select("role, roles, position_person_id").eq("id", au.user.id).maybeSingle();
+    const { data: prof } = await db.from("profiles").select("role, roles, position_person_id, suspended_at").eq("id", au.user.id).maybeSingle();
     const roles = [prof?.role, ...(Array.isArray(prof?.roles) ? prof.roles : [])];
     const isAdmin = roles.includes("admin");
 
@@ -267,6 +308,41 @@ Deno.serve(async (req: Request) => {
       return json({ success: true, person_id: p.id, summary: out.summary, tags: out.tags });
     }
 
+    // First-time biography: any signed-in member opening a profile with no biography triggers one automatic AI draft.
+    // Only public-level facts are used, an existing/self-written/draft biography is never touched, and the text is not returned.
+    // One attempt per person per hour, and a daily cap for the whole site. { action: "auto_biography", person_id }
+    if (body?.action === "auto_biography") {
+      if (!prof || prof.suspended_at) return json({ error: "खाता निलम्बित छ।" }, 403);
+      const pid = String(body.person_id || "");
+      if (!UUID.test(pid)) return json({ error: "person_id अमान्य छ।" }, 400);
+      const skip = (reason: string) => json({ success: true, generated: false, reason });
+      const { data: p } = await db.from("people").select("*").eq("id", pid).maybeSingle();
+      if (!p || p.hidden) return json({ error: "व्यक्ति फेला परेन।" }, 404);
+      if (String(p.bio || "").trim() || String(p.bio_draft || "").trim()) return skip("exists");
+      if (p.is_living !== false && isMinor(p)) return skip("minor");
+      const known = [p.birth_place, p.death_bs, p.education, p.occupation, p.organization, p.marriage_bs, p.address, p.spouse_id,
+        isOpen(p, "birth_bs", true) && !isMinor(p) ? p.birth_bs : null].filter((x) => String(x ?? "").trim()).length
+        + [p.father_id, p.mother_id].filter(Boolean).length;
+      if (known < 3) return skip("thin");
+      const hourAgo = new Date(Date.now() - 3600e3).toISOString();
+      const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
+      const { count: today } = await db.from("bio_attempts").select("person_id", { count: "exact", head: true }).gte("tried_at", dayAgo);
+      if ((today ?? 0) >= 100) return skip("daily-cap");
+      // claim the attempt first so two members opening the same profile do not both generate
+      await db.from("bio_attempts").delete().eq("person_id", pid).lt("tried_at", hourAgo);
+      const { error: ce } = await db.from("bio_attempts").insert({ person_id: pid });
+      if (ce) return skip("recent");
+      const bio = await composeBio(db, key, p, []);
+      const { data: saved, error } = await db.from("people")
+        .update({ bio, bio_ai: true, bio_at: new Date().toISOString() })
+        .eq("id", pid).or("bio.is.null,bio.eq.").or("bio_draft.is.null,bio_draft.eq.").select("id");
+      if (error) {
+        console.error("save auto bio", error.message);
+        return json({ error: "जीवनी सुरक्षित गर्न सकिएन।" }, 500);
+      }
+      return json({ success: true, generated: !!saved?.length });
+    }
+
     // "जीवनी": the long biography for the life-sheet. An admin, or the person for themselves (once every 6 hours).
     // { action: "biography", person_id } → saves people.bio (bio_ai = true)
     if (body?.action === "biography") {
@@ -283,42 +359,7 @@ Deno.serve(async (req: Request) => {
         return json({ error: "पहिलेको मस्यौदा हेर्नुहोस् वा हटाएर फेरि प्रयास गर्नुहोस्।" }, 429);
       const oldFacts: string[] = Array.isArray(p.bio_facts) ? p.bio_facts.map((x: unknown) => cut(x, 120)).filter(Boolean) : [];
       const facts = human ? await geminiFacts(key, String(p.bio), oldFacts) : oldFacts;
-      const ids = [p.father_id, p.mother_id, p.spouse_id, ...(p.more_spouse_ids || [])].filter(Boolean);
-      const { data: near } = ids.length ? await db.from("people").select("id,name,father_id,mother_id").in("id", ids).eq("hidden", false) : { data: [] };
-      const byId: Record<string, { id: string; name: string; father_id: string | null; mother_id: string | null }> = {};
-      (near || []).forEach((x: { id: string; name: string; father_id: string | null; mother_id: string | null }) => (byId[x.id] = x));
-      const gids = [byId[p.father_id]?.father_id, byId[p.father_id]?.mother_id, byId[p.mother_id]?.father_id, byId[p.mother_id]?.mother_id].filter(Boolean);
-      const { data: gp } = gids.length ? await db.from("people").select("id,name").in("id", gids).eq("hidden", false) : { data: [] };
-      const gname = (id: string | null | undefined) => (gp || []).find((x: { id: string }) => x.id === id)?.name || "";
-      const { data: kids } = await db.from("people").select("name").or(`father_id.eq.${p.id},mother_id.eq.${p.id}`).eq("hidden", false);
-      const sib = p.father_id || p.mother_id
-        ? (await db.from("people").select("id,name,father_id,mother_id").or([p.father_id && `father_id.eq.${p.father_id}`, p.mother_id && `mother_id.eq.${p.mother_id}`].filter(Boolean).join(",")).eq("hidden", false)).data || []
-        : [];
-      const fa = byId[p.father_id], mo = byId[p.mother_id];
-      const baral = (p.gender === "F" ? lastWord(fa?.name) : lastWord(p.name)) === "बराल";
-      const bio = await geminiBio(key, {
-        "नाम": p.name,
-        "लिङ्ग": p.gender === "F" ? "महिला" : p.gender === "M" ? "पुरुष" : "",
-        "अवस्था": p.is_living === false ? "दिवङ्गत" : "जीवित",
-        "जन्म मिति (वि.सं.)": isOpen(p, "birth_bs", true) && !isMinor(p) ? p.birth_bs || "" : "",
-        "मृत्यु मिति (वि.सं.)": p.death_bs || "",
-        "जन्मस्थान": p.birth_place || "",
-        "हालको ठेगाना": p.is_living === false || !isOpen(p, "address", false) ? "" : p.address || "",
-        "पिता": fa?.name || "",
-        "माता": mo?.name || "",
-        "बुबाका पिता (हजुरबुबा)": gname(fa?.father_id),
-        "बुबाकी आमा (हजुरआमा)": gname(fa?.mother_id),
-        "आमाका पिता": gname(mo?.father_id),
-        "आमाकी आमा": gname(mo?.mother_id),
-        "दाजुभाइ/दिदीबहिनी": sib.filter((x: { id: string }) => x.id !== p.id).map((x: { name: string }) => x.name).join(", "),
-        "जीवनसाथी": [p.spouse_id, ...(p.more_spouse_ids || [])].map((id: string) => byId[id]?.name).filter(Boolean).join(", "),
-        "विवाह मिति": p.marriage_bs || "",
-        "सन्तान": (kids || []).map((k: { name: string }) => k.name).join(", "),
-        "शिक्षा": p.education || "",
-        "पेशा": p.occupation || "",
-        "संस्था": p.organization || "",
-        "व्यक्तिले आफैँ लेखेको जीवनीबाट सिकेका तथ्य": facts.join("; "),
-      }, baral);
+      const bio = await composeBio(db, key, p, facts);
       const upd = human
         ? { bio_draft: bio, bio_facts: facts, bio_at: new Date().toISOString() }
         : { bio, bio_ai: true, bio_facts: facts, bio_at: new Date().toISOString() };

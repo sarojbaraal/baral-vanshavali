@@ -49,7 +49,7 @@ function InstallButton() {
 }
 
 function Shell() {
-  const { db, phase, me, act, roles, setAct, tab, setTab, profId, sel, perms, treeApi, people, openDialog, online, outbox, syncNow, discardOutbox, previewAs, setPreviewAs, g } = useVansh();
+  const { db, phase, me, act, roles, setAct, tab, setTab, profId, sel, perms, treeApi, people, openDialog, online, outbox, syncNow, discardOutbox, previewAs, setPreviewAs, g, toast, dialog } = useVansh();
   const [wide, setWide] = useState(true);
   const [hdrH, setHdrH] = useState(72);
 
@@ -133,6 +133,32 @@ function Shell() {
       <button className="ghost" onClick={() => setPreviewAs(null)}>बन्द गर्ने</button>
     </div>
   ) : null;
+  // new access requests: shown inside the site (a dot on the account menu and a message), never by email
+  const [reqN, setReqN] = useState(0);
+  const seenN = useRef<number | null>(null);
+  const meId = me?.id;
+  const noDialog = dialog === null;
+  useEffect(() => {
+    if (!inApp || !meId || previewAs) return;
+    let off = false;
+    const poll = async () => {
+      if (document.visibilityState === "hidden") return;
+      const { data } = await db.rpc("my_field_access");
+      if (off || !data) return;
+      const n = Array.isArray((data as { incoming?: unknown[] }).incoming) ? (data as { incoming: unknown[] }).incoming.length : 0;
+      setReqN(n);
+      if (n > (seenN.current ?? 0)) toast(`🔑 ${n} नयाँ पहुँच अनुरोध — खाता मेनु → पहुँच अनुरोध`);
+      seenN.current = n;
+    };
+    poll();
+    const t = setInterval(poll, 60000);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      off = true;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", poll);
+    };
+  }, [db, inApp, meId, previewAs, toast, noDialog]);
   const meP = me?.position_person_id ? g.byId[me.position_person_id] : undefined;
   const account: AccountInfo | null = showWho
     ? {
@@ -142,6 +168,7 @@ function Shell() {
         act,
         onRole: (k) => setAct(k as Role),
         staff: perms.isStaff,
+        badge: reqN,
         oauthOnly,
         version: `आज ${todayTxt}${perms.isAdm ? ` · Build: ${APP_VER}` : ` · ${APP_VER}`}`,
         onAction: (a) => {

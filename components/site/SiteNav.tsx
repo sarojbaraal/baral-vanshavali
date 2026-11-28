@@ -25,6 +25,8 @@ export interface AccountInfo {
   staff: boolean;
   oauthOnly?: boolean;
   version?: string;
+  /** new access requests waiting for this person: a dot on the avatar and a count on the menu item */
+  badge?: number;
   onAction: (a: AccountAction) => void;
 }
 
@@ -142,7 +144,8 @@ function AccountMenu({ acc }: { acc: AccountInfo }) {
         <svg className="sn-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
           <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className="sn-sr">खाता मेनु</span>
+        <span className="sn-sr">खाता मेनु{acc.badge ? ` — ${acc.badge} नयाँ पहुँच अनुरोध` : ""}</span>
+        {!!acc.badge && <span className="sn-dot" aria-hidden="true" />}
       </button>
       {open && (
         <div className="sn-pop" role="menu" aria-label="खाता मेनु">
@@ -158,6 +161,7 @@ function AccountMenu({ acc }: { acc: AccountInfo }) {
                   <path d={m.icon} />
                 </svg>
                 {m.l}
+                {m.a === "access" && !!acc.badge && <span className="sn-cnt">{acc.badge}</span>}
               </button>
             </React.Fragment>
           ))}

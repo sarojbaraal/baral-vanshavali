@@ -27,6 +27,10 @@ import { useTodayLabel } from "./HeroAi";
 import { DownloadPreview, useStampMaker, type Prepared } from "./DownloadPreview";
 import { ChartMenu, ZoomPill } from "./ChartMenu";
 import { FieldRequestDialog } from "./FieldAccess";
+import { autoBio } from "@/lib/vansh/aiSummary";
+
+// profiles already tried in this browser session (the server also limits to one try per person per hour)
+const triedBio = new Set<string>();
 
 export default function ProfileView({ pid }: { pid?: string }) {
   const { db, me, g, gPrint, perms, toast, reload, openDialog, closeDialog, setTab, pick, openProfile, closeProfile } = useVansh();
@@ -55,6 +59,14 @@ export default function ProfileView({ pid }: { pid?: string }) {
   useEffect(() => {
     if (descW) setZoom(Math.max(0.35, Math.min(0.8, (Math.min(window.innerWidth, 1100) - 64) / descW)));
   }, [descW]);
+
+  // a profile with no biography gets one written automatically the first time it is opened
+  const autoId = p && !p.is_locked && !p.bio?.trim() && !p.bio_draft?.trim() ? p.id : null;
+  useEffect(() => {
+    if (!autoId || triedBio.has(autoId) || !me) return;
+    triedBio.add(autoId);
+    autoBio(db, autoId).then((ok) => { if (ok) void reload(); }).catch(() => {});
+  }, [autoId, db, me, reload]);
 
   if (!p && other)
     return (
