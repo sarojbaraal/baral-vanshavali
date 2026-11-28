@@ -55,3 +55,9 @@ export async function generateBio(db: SupabaseClient, personId: string): Promise
   if (!data?.success) throw new Error(data?.error || "जीवनी बनेन");
   return !!data.draft;
 }
+
+/** First view of a profile with no biography: the server writes one from public-level facts (rate limited). true = a biography was saved */
+export async function autoBio(db: SupabaseClient, personId: string): Promise<boolean> {
+  const { data, error } = await db.functions.invoke("generate-ai-insights", { body: { action: "auto_biography", person_id: personId } });
+  return !error && !!data?.generated;
+}

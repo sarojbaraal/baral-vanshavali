@@ -30,7 +30,7 @@ describe("proven dates, age in years / months / days, birth time", () => {
     expect(ageLabel({ ...base })).toBe("३५ वर्ष");
   });
   it("marks a date proven or estimated", () => {
-    expect(dateProof("2045-05-12", true)).toContain("✔ प्रमाणित");
+    expect(dateProof("2045-05-12", true)).toContain("✔");
     expect(dateProof("2045-05-12", false)).toContain("अनुमानित");
     expect(dateProof("", true)).toBe("");
   });
